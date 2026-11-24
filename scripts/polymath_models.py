@@ -1,5 +1,4 @@
-"""The AI model that writes questions. This release offers Claude only: Claude Code, or an Anthropic API key.
-The other providers stay in the code, switched off by ENABLED, until they have been benchmarked.
+"""The AI model that writes questions: Claude Code (the best fit), a model on this computer, or an API key.
 
 Standard library only (an Anthropic key goes through the `anthropic` package, as polymath_writer does).
 
@@ -51,12 +50,30 @@ PROVIDERS = {
     "openrouter": {"label": "OpenRouter", "kind": "key", "protocol": "openai", "url": "https://openrouter.ai/api/v1"},
     "custom": {"label": "Another API", "kind": "key", "protocol": "openai", "url": "", "needs_url": True},
 }
-ENABLED = ("claude", "anthropic")  # what this release offers
+ENABLED = tuple(PROVIDERS)  # what this release offers
+PLAN_NAMES = {"pro": "Pro", "max": "Max", "team": "Team", "enterprise": "Enterprise"}
 TEST_SCHEMA = writer._obj({"ok": {"type": "boolean"}})
 
 
 def has_sdk() -> bool:
     return importlib.util.find_spec("anthropic") is not None
+
+
+def plan_label(plan) -> str:
+    """The plan name for the page. Only known names pass, so nothing else from the login can reach it."""
+    return PLAN_NAMES.get(str(plan or "").strip().lower(), "")
+
+
+def claude_state(pen) -> dict:
+    """Is Claude Code installed and signed in with an active subscription? Asks it, at no cost."""
+    if not pen.available():
+        return {"state": "not_installed", "installed": False, "signed_in": False, "plan": ""}
+    found = pen.auth_status()
+    code = found.get("code")
+    state = "ready" if found.get("ok") else {"signed_out": "signed_out", "not_subscription": "wrong_login",
+                                             "no_subscription": "no_subscription"}.get(code, "error")
+    return {"state": state, "installed": True, "plan": plan_label(found.get("plan")),
+            "signed_in": bool(found.get("ok")) or code in ("not_subscription", "no_subscription")}
 
 
 def offered(pid: str) -> bool:
@@ -484,14 +501,15 @@ def startup_writer(store, model: str = "opus", effort: str = "low"):
     if isinstance(active, dict) and active.get("provider") in PROVIDERS:
         pid = active["provider"]
         if not offered(pid):
-            return NoModel("This version of Polymath works with Claude only. Choose a Claude model on the AI model "
-                           "page.", "no_model")
+            return NoModel("Your saved AI model isn't available in this version. Choose one on the AI model page.",
+                           "no_model")
         try:
             return build(pid, active.get("model"), active.get("url") or "", (config.get("keys") or {}).get(pid) or "",
                          effort)
         except writer.WriterError as exc:
             return NoModel(f"Your saved model can't be used: {exc} Choose one on the AI model page.", exc.code)
-    return writer.pick_writer("auto", model, effort) or NoModel()
+    return writer.pick_writer("auto", model, effort) or NoModel(
+        "Choose an AI model to write your questions. Polymath works best with Claude.")
 
 
 # --- the settings behind the AI model page -------------------------------------------------------------
@@ -553,7 +571,22 @@ class Models:
         now = self.current()
         return {"ok": bool(state.get("ok")), "code": state.get("code"), "problem": state.get("problem"),
                 "provider": now["provider"], "label": now["label"], "kind": now["kind"], "model": now["model"],
-                "place": now["place"], "writer": now["writer"]}
+                "place": now["place"], "writer": now["writer"], "plan": plan_label(state.get("plan"))}
+
+    def claude(self) -> dict:
+        """Whether your Claude subscription can be used, and the next step if not. It asks Claude Code on this
+        computer, which costs nothing. Only signed-in, login type and plan are used: never the email or organization."""
+        if self.locked:
+            return {"state": "locked", "installed": False, "signed_in": False, "plan": "", "status": self.status()}
+        pen = writer.ClaudeCLI("opus", self.effort)
+        account = claude_state(pen)
+        state = account["state"]
+        current = self.study.pen
+        if state == "ready" and isinstance(current, NoModel) and not read_config(self.store).get("active"):
+            self.study.set_pen(pen)  # just installed or signed in, and nothing else was chosen
+        elif isinstance(current, writer.ClaudeCLI):
+            self.study.recheck()
+        return {**account, "status": self.status()}
 
     def view(self) -> dict:
         config = read_config(self.store)

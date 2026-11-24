@@ -1,4 +1,4 @@
-"""What this release promises: Claude only, the benchmark off, the current PD1 weights, and a clean download."""
+"""What this release promises: its model choices, the benchmark off, the current PD1 weights, and a clean download."""
 import json
 import sys
 import tempfile
@@ -18,7 +18,7 @@ import polymath_study as study_mod      # noqa: E402
 import polymath_writer as writer        # noqa: E402
 
 
-class ClaudeOnly(unittest.TestCase):
+class ModelChoices(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
@@ -30,30 +30,117 @@ class ClaudeOnly(unittest.TestCase):
         self.addCleanup(self.study.stop)
         self.manager = models.Models(self.store, self.study)
 
-    def test_only_claude_is_offered(self):
-        self.assertEqual(models.ENABLED, ("claude", "anthropic"))
+    def test_every_provider_is_offered_and_the_benchmark_stays_off(self):
+        self.assertEqual(models.ENABLED, tuple(models.PROVIDERS))
         self.assertFalse(bench.ENABLED)
-        with mock.patch.object(models, "has_sdk", lambda: True):
-            self.assertEqual([p["id"] for p in self.manager.view()["providers"]], ["claude", "anthropic"])
         with mock.patch.object(models, "has_sdk", lambda: False):
-            self.assertEqual([p["id"] for p in self.manager.view()["providers"]], ["claude"])
+            self.assertNotIn("anthropic", [p["id"] for p in self.manager.view()["providers"]])
         self.assertFalse(self.manager.view()["benchmark"])
 
-    def test_other_providers_are_refused_and_never_contacted(self):
-        for pid in set(models.PROVIDERS) - set(models.ENABLED):
-            with mock.patch.object(models.HTTPModel, "_send", side_effect=AssertionError("contacted")):
+    def test_a_switched_off_provider_is_refused_and_never_contacted(self):
+        with mock.patch.object(models, "ENABLED", ("claude",)), \
+                mock.patch.object(models.HTTPModel, "_send", side_effect=AssertionError("contacted")):
+            for pid in set(models.PROVIDERS) - {"claude"}:
                 with self.assertRaises(writer.WriterError):
                     self.manager.use({"provider": pid, "model": "m", "url": "http://127.0.0.1:9/v1", "key": "k" * 12})
                 with self.assertRaises(writer.WriterError):
                     self.manager.list({"provider": pid, "url": "http://127.0.0.1:9/v1", "key": "k" * 12})
-        self.assertEqual(self.manager.scan(), {"servers": []})
+            self.assertEqual(self.manager.scan(), {"servers": []})
 
-    def test_a_saved_other_provider_is_reported_not_used(self):
+    def test_a_saved_switched_off_provider_is_reported_not_used(self):
         (self.store.root / models.CONFIG).write_text(json.dumps(
             {"active": {"provider": "ollama", "model": "m", "url": "http://127.0.0.1:11434"}}), encoding="utf-8")
-        pen = models.startup_writer(self.store)
+        with mock.patch.object(models, "ENABLED", ("claude",)):
+            pen = models.startup_writer(self.store)
         self.assertIsInstance(pen, models.NoModel)
         self.assertEqual(pen.code, "no_model")
+
+
+class ClaudeAccount(unittest.TestCase):
+    """The subscription panel. Claude Code is a stand-in here: no test runs the real one."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        env = mock.patch.dict("os.environ", {"POLYMATH_HOME": self.tmp.name})
+        env.start()
+        self.addCleanup(env.stop)
+        self.store = engine.Store()
+
+    def manager(self, pen=None, **kw):
+        study = study_mod.Study(self.store, pen or models.NoModel())
+        self.addCleanup(study.stop)
+        return models.Models(self.store, study, **kw)
+
+    @staticmethod
+    def stand_in(result=None, installed=True, calls=None):
+        class Stand(writer.ClaudeCLI):
+            def __init__(self, *args, **kw):
+                super().__init__(*args, binary="/stand-in/claude")
+
+            def available(self):
+                return installed
+
+            def auth_status(self):
+                if calls is not None:
+                    calls.append(1)
+                return dict(result or {})
+        return mock.patch.object(writer, "ClaudeCLI", Stand)
+
+    def test_each_state_says_what_is_true(self):
+        cases = [({"ok": True, "plan": "max"}, True, ("ready", True, True, "Max")),
+                 ({"ok": False, "code": "signed_out"}, True, ("signed_out", True, False, "")),
+                 ({"ok": False, "code": "not_subscription", "plan": None}, True, ("wrong_login", True, True, "")),
+                 ({"ok": False, "code": "no_subscription", "plan": None}, True, ("no_subscription", True, True, "")),
+                 ({"ok": False, "code": "writer_missing"}, True, ("error", True, False, "")),
+                 (None, False, ("not_installed", False, False, ""))]
+        for result, installed, want in cases:
+            with self.stand_in(result, installed):
+                out = self.manager(writer.FakeWriter()).claude()
+            self.assertEqual((out["state"], out["installed"], out["signed_in"], out["plan"]), want)
+
+    @unittest.skipUnless(sys.platform != "win32", "uses a shell script as the stand-in")
+    def test_email_and_organization_never_reach_the_page(self):
+        script = Path(self.tmp.name) / "claude"
+        script.write_text("#!/bin/sh\necho '" + json.dumps(
+            {"loggedIn": True, "authMethod": "claude.ai", "apiProvider": "firstParty", "subscriptionType": "max",
+             "email": "private@example.com", "orgId": "org-secret", "orgName": "Private Org"}) + "'\n")
+        script.chmod(0o700)
+        real = writer.ClaudeCLI
+        class Stand(real):
+            def __init__(self, *args, **kw):
+                super().__init__(*args, binary=str(script))
+        with mock.patch.object(writer, "ClaudeCLI", Stand):
+            out = json.dumps(self.manager(writer.FakeWriter()).claude())
+        self.assertIn('"plan": "Max"', out)
+        for private in ("private@example.com", "org-secret", "Private Org"):
+            self.assertNotIn(private, out)
+
+    def test_an_unknown_plan_name_is_not_shown(self):
+        self.assertEqual(models.plan_label("max"), "Max")
+        for odd in ("", None, "free", "<b>x</b>", "someone@example.com"):
+            self.assertEqual(models.plan_label(odd), "")
+
+    def test_signing_in_connects_it_when_nothing_else_was_chosen(self):
+        m = self.manager()
+        with self.stand_in({"ok": True, "plan": "pro"}):
+            m.claude()
+            self.assertIsInstance(m.study.pen, writer.ClaudeCLI)
+
+    def test_a_saved_choice_is_never_swapped(self):
+        (self.store.root / models.CONFIG).write_text(json.dumps({"active": {"provider": "anthropic", "model": "m"}}),
+                                                     encoding="utf-8")
+        pen = models.NoModel("saved key can't run")
+        m = self.manager(pen)
+        with self.stand_in({"ok": True, "plan": "pro"}):
+            m.claude()
+        self.assertIs(m.study.pen, pen)
+
+    def test_a_demo_never_asks_claude_code(self):
+        calls = []
+        with self.stand_in({"ok": True, "plan": "max"}, calls=calls):
+            out = self.manager(writer.FakeWriter(), locked=True).claude()
+        self.assertEqual((out["state"], calls), ("locked", []))
 
 
 class Pd1Weights(unittest.TestCase):
@@ -66,6 +153,10 @@ class Pd1Weights(unittest.TestCase):
 
 
 class Download(unittest.TestCase):
+    def test_the_version_is_the_same_everywhere(self):
+        plugin = json.loads((ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+        self.assertEqual(plugin["version"], engine.VERSION)
+
     def test_the_zip_holds_the_app_and_nothing_private(self):
         with tempfile.TemporaryDirectory() as folder:
             out = Path(folder) / "polymath.zip"

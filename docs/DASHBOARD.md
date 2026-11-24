@@ -416,18 +416,28 @@ Errors are `{"error": "…", "code": "…"}`; the code (such as `daily_cap`, `us
 
 ## AI model
 
-The **AI model** tab chooses which Claude model writes your questions. Your progress stays when you
-change it.
+The **AI model** tab chooses what writes your questions. Your progress stays when you change it.
+**Polymath works best with Claude.** Other models can write wrong answers more often.
 
 | Kind | Options | Where your study data goes |
 | --- | --- | --- |
 | Claude subscription | Opus, Sonnet or Haiku through Claude Code | To Anthropic, on your plan |
-| API key | Any Claude model, if the optional `anthropic` Python package is installed | To Anthropic, billed to your key |
+| API key | Anthropic (with the optional `anthropic` Python package), OpenAI, Google Gemini, OpenRouter, or any OpenAI-compatible API | To that provider, billed to your key |
+| On this computer | Ollama, LM Studio, or any OpenAI-compatible server | Stays on this computer, or the machine you point it at |
 
-This release offers Claude only. Support for other models stays in the code, switched off by
-`ENABLED` in `scripts/polymath_models.py`, until each one has been measured. The model benchmark
-in `scripts/polymath_bench.py` is off for the same reason.
+**At install time** the installer checks each kind before it changes anything: Claude Code must be installed and
+signed in with an active subscription, a local server must be running with a model, and an API key found in your
+environment must be accepted by its provider once you choose it. If none passes, the install stops. If one or more
+pass, you confirm your default. With nobody at the keyboard, pass `--llm`, for example `--llm claude:sonnet`.
+The subscription check reads the plan Claude Code reports, so a payment that lapsed moments ago may not show yet.
 
+The model benchmark in `scripts/polymath_bench.py` is switched off for now.
+
+- **How it knows your subscription.** The Claude subscription tab asks Claude Code on this computer
+  with `claude auth status`, which costs nothing, and shows whether it is installed, whether you
+  are signed in with a subscription, your plan, and the next step if something is missing. Polymath
+  uses only the signed-in state, login type and plan name. It doesn't save or show your email, and it
+  never sees your password or payment details. An API-key login is refused, because it bills separately.
 - **A choice is checked before it is used.** If it fails, nothing changes.
 - **If the model stops,** a notice appears on every page saying what is wrong and what to do. Your
   answers stay safe, and questions that failed are written again when it returns. A saved choice

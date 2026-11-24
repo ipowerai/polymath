@@ -31,7 +31,7 @@ from contextlib import contextmanager
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 SCHEMA = 1
 PLUGIN_ROOT = Path(__file__).resolve().parent.parent
 

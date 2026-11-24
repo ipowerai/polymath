@@ -629,7 +629,8 @@ def models_post(app, path: str, body: dict) -> dict:
     models = app.models
     if not models:
         raise NotFound(path)
-    action = {"/api/models/scan": models.scan, "/api/models/test": models.test}.get(path)
+    action = {"/api/models/scan": models.scan, "/api/models/test": models.test,
+              "/api/models/claude": models.claude}.get(path)
     if action:
         return action()
     action = {"/api/models/list": models.list, "/api/models/use": models.use,

@@ -227,6 +227,7 @@ LESSON_SCHEMA = _obj({
 # --- backends ------------------------------------------------------------------------------------
 _NEUTRAL = None
 _NEUTRAL_LOCK = threading.Lock()
+NO_PLAN = ("", "free", "none", "null")  # what Claude Code reports for an account with no paid plan
 ENV_KEEP = ("PATH", "HOME", "USER", "LOGNAME", "LANG", "TZ", "TMPDIR", "SHELL", "CLAUDE_CONFIG_DIR",
             "SYSTEMROOT", "APPDATA", "LOCALAPPDATA", "USERPROFILE")
 
@@ -354,6 +355,10 @@ class ClaudeCLI(Backend):
             return {"ok": False, "code": "signed_out",
                     "problem": "Claude Code isn't signed in. Run claude in a terminal and log in."}
         method, provider, plan = data.get("authMethod"), data.get("apiProvider"), data.get("subscriptionType")
+        if method == "claude.ai" and provider in (None, "firstParty") and str(plan or "").strip().lower() in NO_PLAN:
+            return {"ok": False, "code": "no_subscription", "method": method, "plan": None,
+                    "problem": "Your Claude account has no active subscription, which Claude Code needs. Choose a "
+                               "plan at claude.com/pricing, then run claude and type /login."}
         if method != "claude.ai" or provider not in (None, "firstParty") or not plan:
             return {"ok": False, "code": "not_subscription", "method": method, "plan": plan,
                     "problem": "Claude Code is signed in with an API key or another provider, which bills per token. "

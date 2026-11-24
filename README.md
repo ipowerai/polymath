@@ -60,8 +60,13 @@ Sage  > ✓ Right. M3 is fixing; I'll check it again tomorrow. Next: a probe on 
 ## Install
 
 You need:
-- [Claude Code](https://claude.com/claude-code), signed in with a Claude subscription. Study uses your plan's usage.
 - [Python](https://www.python.org/downloads/) 3.9 or later.
+- A working AI model. **Polymath works best with [Claude Code](https://claude.com/claude-code)**, signed in with an active
+  Claude subscription. Study uses your plan's usage. Ollama, LM Studio and API keys also work, but other models can
+  write wrong answers more often.
+
+The installer checks your models first. If none passes, it stops and installs nothing. If one or more pass, it asks
+you to confirm your default.
 
 **Mac or Linux.** Open Terminal and run:
 
@@ -79,6 +84,16 @@ It installs for your account only, starts when you log in, and opens in your bro
 `http://127.0.0.1:8765`. If that port is busy it picks the next free one. To choose a port,
 add `-s -- --port 9000` after `bash`, or on Windows first run `$env:POLYMATH_PORT = 9000`.
 To remove it, run the command the installer prints. Your study data stays in `~/.polymath`.
+
+Control it from the terminal:
+
+```
+polymath status    # is it running, and where
+polymath start     # start it, and keep it starting at login
+polymath stop      # stop it, and keep it off until you start it
+polymath restart   # stop it and start it again
+polymath open      # open it in your browser
+```
 
 ### Use it inside Claude Code too
 
@@ -159,8 +174,8 @@ access, on your subscription, under a daily cap you set. A block of three takes 
 What is sent to Claude, and how its work is checked, is in
 [docs/DASHBOARD.md](docs/DASHBOARD.md#study-in-the-browser).
 
-This release runs on Claude only. Choose Opus, Sonnet or Haiku on the
-[AI model](docs/DASHBOARD.md#ai-model) tab.
+Polymath works best with Claude. You can also use a model on your computer or an API key.
+Change it any time on the [AI model](docs/DASHBOARD.md#ai-model) tab.
 
 It signs you in with a private token, on this machine too, because study spends your
 Claude usage and other accounts on the machine can reach it: open the link it prints

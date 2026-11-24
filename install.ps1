@@ -5,7 +5,8 @@
 # To use another port, first run:  $env:POLYMATH_PORT = 9000
 # From a downloaded copy:  powershell -ExecutionPolicy Bypass -File install.ps1 [-Port 9000] [-Uninstall]
 #
-# It needs Python 3.9 or later. Study needs Claude Code, signed in with a Claude subscription.
+# It needs Python 3.9 or later and a working AI model. It checks first: Claude Code signed in with an active
+# subscription, a running local model, or an accepted API key. If none passes, nothing is installed.
 # It writes only to your own account: no administrator rights are needed.
 
 function Install-Polymath {
@@ -19,19 +20,21 @@ function Install-Polymath {
     $App = Join-Path $Root 'app'
     $Engine = Join-Path $App 'scripts\polymath.py'
     $PortFile = Join-Path $Root 'port'
-    $Opener = Join-Path $Root 'Open Polymath.cmd'
+    $BinDir = Join-Path $Root 'bin'
+    $Control = Join-Path $App 'scripts\polymath_control.py'
     $StartupFile = Join-Path ([Environment]::GetFolderPath('Startup')) 'Polymath.cmd'
     $Utf8 = New-Object Text.UTF8Encoding($false)
 
-    $Port = 0; $Remove = $false; $Service = $true; $OpenIt = $true
+    $Port = 0; $Remove = $false; $Service = $true; $OpenIt = $true; $Llm = $env:POLYMATH_LLM
     if ($env:POLYMATH_PORT) { $Port = [int]$env:POLYMATH_PORT }
     for ($i = 0; $i -lt $Options.Count; $i++) {
         switch -Regex ([string]$Options[$i]) {
             '^--?port$' { $i++; $Port = [int]$Options[$i] }
+            '^--?llm$' { $i++; $Llm = [string]$Options[$i] }
             '^--?uninstall$' { $Remove = $true }
             '^--?no-?service$' { $Service = $false }
             '^--?no-?open$' { $OpenIt = $false }
-            default { throw "Unknown option $($Options[$i]). Options: -Port N, -Uninstall, -NoService, -NoOpen." }
+            default { throw "Unknown option $($Options[$i]). Options: -Port N, -Llm MODEL, -Uninstall, -NoService, -NoOpen." }
         }
     }
 
@@ -69,7 +72,10 @@ function Install-Polymath {
         Stop-Running
         Remove-Item -LiteralPath $StartupFile -Force -ErrorAction SilentlyContinue
         Remove-Item -LiteralPath $App -Recurse -Force -ErrorAction SilentlyContinue
-        Remove-Item -LiteralPath $PortFile, $Opener -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $PortFile, (Join-Path $Root 'Polymath-startup.off') -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $BinDir -Recurse -Force -ErrorAction SilentlyContinue
+        $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+        if ($userPath) { [Environment]::SetEnvironmentVariable('Path', (($userPath -split ';' | Where-Object { $_ -and $_ -ne $BinDir }) -join ';'), 'User') }
         if ((Test-Path -LiteralPath $Root) -and -not (Get-ChildItem -LiteralPath $Root -Force)) { Remove-Item -LiteralPath $Root }
         Write-Host "Polymath is removed. Your study data is still in $(Join-Path $HOME '.polymath')."
         return
@@ -80,19 +86,29 @@ function Install-Polymath {
     $Windowless = Join-Path (Split-Path $Python) 'pythonw.exe'
     if (-not (Test-Path -LiteralPath $Windowless)) { $Windowless = $Python }
 
-    $Work = $null
+    $env:PYTHONUTF8 = '1'
+    $env:PYTHONDONTWRITEBYTECODE = '1'
+    $claudeHome = Join-Path $HOME '.local\bin'
+    if ((Test-Path -LiteralPath $claudeHome) -and -not (($env:Path -split ';') -contains $claudeHome)) { $env:Path = "$claudeHome;$env:Path" }
+    $Work = Join-Path ([IO.Path]::GetTempPath()) ("polymath-" + [Guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $Work | Out-Null
+    $Choice = Join-Path $Work 'choice.json'
     $Source = $null
     if ($PSScriptRoot -and (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'scripts\polymath.py'))) { $Source = $PSScriptRoot }
     try {
         if (-not $Source) {
-            $Work = Join-Path ([IO.Path]::GetTempPath()) ("polymath-" + [Guid]::NewGuid().ToString('N'))
-            New-Item -ItemType Directory -Path $Work | Out-Null
             Write-Host 'Downloading Polymath...'
             Invoke-WebRequest -Uri $ZipUrl -OutFile (Join-Path $Work 'polymath.zip') -UseBasicParsing
             Expand-Archive -LiteralPath (Join-Path $Work 'polymath.zip') -DestinationPath (Join-Path $Work 'unpacked')
             $Source = Join-Path $Work 'unpacked\polymath'
             if (-not (Test-Path -LiteralPath (Join-Path $Source 'scripts\polymath.py'))) { throw 'The download was incomplete.' }
         }
+
+        # Stops here, with nothing installed or changed, unless a model passes and you confirm it.
+        $checkArgs = @((Join-Path $Source 'scripts\polymath_setup.py'), 'check', '--out', $Choice)
+        if ($Llm) { $checkArgs += @('--llm', $Llm) }
+        & $Python @checkArgs
+        if ($LASTEXITCODE -ne 0) { throw 'No AI model was confirmed.' }
 
         Stop-Running
         New-Item -ItemType Directory -Force -Path $Root | Out-Null
@@ -107,6 +123,8 @@ function Install-Polymath {
         Get-ChildItem -LiteralPath $New -Recurse -Force -Directory -Filter '__pycache__' | Remove-Item -Recurse -Force
         if (Test-Path -LiteralPath $App) { Remove-Item -LiteralPath $App -Recurse -Force }
         Move-Item -LiteralPath $New -Destination $App
+        & $Python (Join-Path $App 'scripts\polymath_setup.py') save --from $Choice
+        if ($LASTEXITCODE -ne 0) { throw 'Your default model could not be saved.' }
     } finally {
         if ($Work) { Remove-Item -LiteralPath $Work -Recurse -Force -ErrorAction SilentlyContinue }
     }
@@ -122,12 +140,15 @@ function Install-Polymath {
         if (-not $Port) { throw 'Ports 8765 to 8785 are all in use. Choose one with -Port.' }
     }
     [IO.File]::WriteAllText($PortFile, [string]$Port, $Utf8)
-    [IO.File]::WriteAllText($Opener, "@echo off`r`nchcp 65001 >nul`r`nset PYTHONUTF8=1`r`n`"$Python`" `"$Engine`" serve --port $Port --open`r`n", $Utf8)
+    New-Item -ItemType Directory -Force -Path $BinDir | Out-Null
+    [IO.File]::WriteAllText((Join-Path $BinDir 'polymath.cmd'), "@echo off`r`nrem Polymath terminal command`r`nchcp 65001 >nul`r`nset PYTHONUTF8=1`r`n`"$Python`" `"$Control`" %*`r`n", $Utf8)
+    $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+    if (-not (($userPath -split ';') -contains $BinDir)) { [Environment]::SetEnvironmentVariable('Path', (@($userPath, $BinDir) -ne '' -join ';'), 'User') }
+    $env:Path = "$BinDir;$env:Path"
     if ($Service) {
         [IO.File]::WriteAllText($StartupFile, "@echo off`r`nchcp 65001 >nul`r`nset PYTHONUTF8=1`r`ncd /d `"$App`"`r`nstart `"`" `"$Windowless`" `"$Engine`" serve --port $Port`r`n", $Utf8)
     }
 
-    $env:PYTHONUTF8 = '1'
     Start-Process -FilePath $Windowless -ArgumentList "`"$Engine`" serve --port $Port" -WorkingDirectory $App -WindowStyle Hidden
     $up = $false
     for ($i = 0; $i -lt 60; $i++) {
@@ -140,15 +161,12 @@ function Install-Polymath {
     Write-Host "Polymath is running at http://127.0.0.1:$Port"
     if ($Service) { Write-Host 'It starts by itself when you log in.' }
     Write-Host "Your study data stays on this computer, in $(Join-Path $HOME '.polymath')."
-    if (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
-        Write-Host ''
-        Write-Host 'One more step: install Claude Code and sign in, so Polymath can write your questions.'
-        Write-Host '  https://claude.com/claude-code'
-    }
     Write-Host ''
-    Write-Host "Open it again:  `"$Opener`""
+    Write-Host 'Control it from a new terminal:'
+    Write-Host '  polymath status | start | stop | restart | open'
+    Write-Host ''
     Write-Host "Remove it:      powershell -ExecutionPolicy Bypass -File `"$App\install.ps1`" -Uninstall"
-    if ($OpenIt) { & $Python $Engine serve --port $Port --open *> $null }
+    if ($OpenIt) { & $Python $Control open *> $null }
 }
 
 # Everything runs from here, so a download cut off halfway does nothing.

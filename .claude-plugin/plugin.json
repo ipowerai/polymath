@@ -1,6 +1,6 @@
 {
   "name": "polymath",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A personal AI tutor that remembers. Set any learning goal (a certification, a language, a field) and Claude teaches, quizzes and coaches you, tracking mastery, spaced reviews and exam readiness across topics and sessions.",
   "license": "AGPL-3.0-only",
   "keywords": [

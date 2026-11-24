@@ -3,15 +3,18 @@
 #
 #   curl -fsSL https://raw.githubusercontent.com/ipowerai/polymath/main/install.sh | bash
 #   ... | bash -s -- --port 9000     use another port (run it again any time to change it)
+#   ... | bash -s -- --llm claude    choose the default model without being asked
 #   ... | bash -s -- --uninstall     remove the app; your study data stays in ~/.polymath
 #
-# It needs Python 3.9 or later. Study needs Claude Code, signed in with a Claude subscription.
+# It needs Python 3.9 or later and a working AI model. It checks first: Claude Code signed in with an active
+# subscription, a running local model, or an accepted API key. If none passes, nothing is installed.
 # It writes only to your own account: no administrator password is needed.
 set -euo pipefail
 
 ZIP_URL="https://github.com/ipowerai/polymath/releases/latest/download/polymath.zip"
 LABEL="${POLYMATH_SERVICE_LABEL:-com.polymath.dashboard}"
 UNIT="polymath.service"
+COMMAND_MARK="# Polymath terminal command"
 PARTS="blueprints references scripts skills web .claude-plugin LICENSE NOTICE README.md install.sh install.ps1"
 
 say() { printf '%s\n' "$*"; }
@@ -51,6 +54,10 @@ find_python() {
 
 find_claude() {
   local place
+  if [ -n "${POLYMATH_CLAUDE_BIN:-}" ]; then  # tests point this at a stand-in
+    if [ -x "$POLYMATH_CLAUDE_BIN" ]; then printf '%s' "$POLYMATH_CLAUDE_BIN"; return 0; fi
+    return 1
+  fi
   for place in "$(command -v claude 2>/dev/null || true)" "$HOME/.local/bin/claude" "$HOME/.claude/local/claude" \
                /opt/homebrew/bin/claude /usr/local/bin/claude; do
     if [ -n "$place" ] && [ -x "$place" ]; then printf '%s' "$place"; return 0; fi
@@ -88,12 +95,18 @@ stop_running() {
 
 uninstall() {
   stop_running
-  if [ "$OS" = Darwin ]; then rm -f "$PLIST"; else
+  if [ "$OS" = Darwin ]; then
+    launchctl enable "gui/$(id -u)/$LABEL" >/dev/null 2>&1 || true
+    rm -f "$PLIST"
+  else
     rm -f "$UNIT_FILE"
     if has_systemd; then systemctl --user daemon-reload >/dev/null 2>&1 || true; fi
   fi
   rm -rf "$APP" "$APP.new"
-  rm -f "$ROOT/port" "$ROOT/polymath-open"
+  local file
+  file=$(cat "$ROOT/command-path" 2>/dev/null || true)
+  if [ -n "$file" ] && grep -qF "$COMMAND_MARK" "$file" 2>/dev/null; then rm -f "$file"; fi
+  rm -f "$ROOT/port" "$ROOT/polymath-open" "$ROOT/install.json" "$ROOT/command-path"
   rmdir "$ROOT" 2>/dev/null || true
   say "Polymath is removed. Your study data is still in ${POLYMATH_HOME:-$HOME/.polymath}."
 }
@@ -108,13 +121,19 @@ locate_source() {
     return
   fi
   command -v curl >/dev/null 2>&1 || die "curl is needed to download Polymath."
-  WORK=$(mktemp -d)
-  trap 'rm -rf "$WORK"' EXIT
   say "Downloading Polymath..."
   curl -fsSL "$ZIP_URL" -o "$WORK/polymath.zip" || die "the download failed. Check your connection and try again."
   "$PY" -m zipfile -e "$WORK/polymath.zip" "$WORK/unpacked" >/dev/null
   SRC="$WORK/unpacked/polymath"
   [ -f "$SRC/scripts/polymath.py" ] || die "the download was incomplete."
+}
+
+choose_model() {
+  local input=/dev/null
+  if (exec </dev/tty) 2>/dev/null; then input=/dev/tty; fi
+  local args=(check --out "$WORK/choice.json")
+  if [ -n "$LLM" ]; then args+=(--llm "$LLM"); fi
+  PYTHONDONTWRITEBYTECODE=1 "$PY" "$SRC/scripts/polymath_setup.py" "${args[@]}" <"$input" || exit 1
 }
 
 copy_app() {
@@ -148,7 +167,8 @@ choose_port() {
 }
 
 service_path() {
-  local path="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin" tool
+  # Claude Code's usual folders, so it is found even if it is installed after Polymath.
+  local path="$HOME/.local/bin:$HOME/.claude/local:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin" tool
   [ "$OS" = Darwin ] && path="/opt/homebrew/bin:$path"
   for tool in "${CLAUDE:-}" "$(command -v node 2>/dev/null || true)"; do
     if [ -n "$tool" ]; then path="$(dirname "$tool"):$path"; fi
@@ -185,6 +205,7 @@ text = ('<?xml version="1.0" encoding="UTF-8"?>\n'
 with open(path, "w", encoding="utf-8") as f:
     f.write(text)
 PLIST_WRITER
+  launchctl enable "gui/$(id -u)/$LABEL" >/dev/null 2>&1 || true
   launchctl bootstrap "gui/$(id -u)" "$PLIST"
 }
 
@@ -217,24 +238,54 @@ start_app() {
   die "it did not start. Details are in $LOG_DIR/server.log."
 }
 
-write_opener() {
+command_dir() {
+  # A folder already on your PATH, so the command works right away without editing your shell profile.
+  local dir
+  for dir in "$HOME/.local/bin" "$HOME/bin" /opt/homebrew/bin /usr/local/bin; do
+    case ":$USER_PATH:" in
+      *":$dir:"*) if [ -d "$dir" ] && [ -w "$dir" ]; then printf '%s' "$dir"; return 0; fi ;;
+    esac
+  done
+  printf '%s' "$HOME/.local/bin"
+  return 1
+}
+
+install_command() {
+  local dir file existing
+  NEEDS_PATH=0
+  dir=$(command_dir) || NEEDS_PATH=1
+  file="$dir/polymath"
+  existing=$(PATH="$USER_PATH" command -v polymath 2>/dev/null || true)
+  if { [ -e "$file" ] && ! grep -qF "$COMMAND_MARK" "$file" 2>/dev/null; } || \
+     { [ -n "$existing" ] && [ "$existing" != "$file" ] && ! grep -qF "$COMMAND_MARK" "$existing" 2>/dev/null; }; then
+    say "Note: another program is already called polymath, so it was left alone."
+    COMMAND="\"$PY\" \"$APP/scripts/polymath_control.py\""
+    NEEDS_PATH=0
+    return
+  fi
+  mkdir -p "$dir"
   {
-    printf '#!/bin/sh\n# Opens Polymath in your browser, signed in.\n'
-    printf 'exec %q %q serve --port %q --open\n' "$PY" "$APP/scripts/polymath.py" "$PORT"
-  } > "$ROOT/polymath-open"
-  chmod 700 "$ROOT/polymath-open"
+    printf '#!/bin/sh\n%s\n' "$COMMAND_MARK"
+    printf 'exec %q %q "$@"\n' "$PY" "$APP/scripts/polymath_control.py"
+  } > "$file"
+  chmod 755 "$file"
+  printf '%s' "$file" > "$ROOT/command-path"
+  if [ "$NEEDS_PATH" = 1 ]; then COMMAND="$file"; else COMMAND=polymath; fi
 }
 
 main() {
-  SERVICE=1 OPEN=1 REMOVE=0 PORT="${POLYMATH_PORT:-}"
+  USER_PATH="$PATH"
+  SERVICE=1 OPEN=1 REMOVE=0 PORT="${POLYMATH_PORT:-}" LLM="${POLYMATH_LLM:-}" NEEDS_PATH=0
   while [ $# -gt 0 ]; do
     case "$1" in
       --port) [ $# -ge 2 ] || die "--port needs a number."; PORT="$2"; shift 2 ;;
       --port=*) PORT="${1#--port=}"; shift ;;
+      --llm) [ $# -ge 2 ] || die "--llm needs a model, like claude or ollama:qwen3:8b."; LLM="$2"; shift 2 ;;
+      --llm=*) LLM="${1#--llm=}"; shift ;;
       --uninstall) REMOVE=1; shift ;;
       --no-service) SERVICE=0; shift ;;
       --no-open) OPEN=0; shift ;;
-      *) die "unknown option $1. Options: --port N, --uninstall, --no-service, --no-open." ;;
+      *) die "unknown option $1. Options: --port N, --llm MODEL, --uninstall, --no-service, --no-open." ;;
     esac
   done
   set_paths
@@ -245,28 +296,37 @@ main() {
   fi
   PY=$(find_python) || die "Python 3.9 or later is needed. Get it from https://www.python.org/downloads/ and run this again."
   CLAUDE=$(find_claude || true)
+  if [ -n "$CLAUDE" ]; then PATH="$(dirname "$CLAUDE"):$PATH"; export PATH; fi
+  WORK=$(mktemp -d)
+  trap 'rm -rf "$WORK"' EXIT
   locate_source
+  choose_model  # stops here, with nothing installed or changed, unless a model passes and you confirm it
   stop_running
   copy_app
+  PYTHONDONTWRITEBYTECODE=1 "$PY" "$APP/scripts/polymath_setup.py" save --from "$WORK/choice.json"
   choose_port
   printf '%s' "$PORT" > "$ROOT/port"
-  write_opener
+  "$PY" -c 'import json, sys; json.dump({"label": sys.argv[1]}, open(sys.argv[2], "w"))' "$LABEL" "$ROOT/install.json"
+  install_command
   start_app
 
   say ""
   say "Polymath is running at http://127.0.0.1:$PORT"
   if [ "$AUTOSTART" = 1 ]; then say "It starts by itself when you log in."; fi
   say "Your study data stays on this computer, in ${POLYMATH_HOME:-$HOME/.polymath}."
-  if [ -z "$CLAUDE" ]; then
+  say ""
+  say "Control it from the terminal:"
+  say "  $COMMAND status | start | stop | restart | open"
+  if [ "$NEEDS_PATH" = 1 ]; then
     say ""
-    say "One more step: install Claude Code and sign in, so Polymath can write your questions."
-    say "  https://claude.com/claude-code"
+    say "To use the short command, add this line to your shell profile:"
+    say "  export PATH=\"\$HOME/.local/bin:\$PATH\""
+    say "Until then, use: $COMMAND status"
   fi
   say ""
-  say "Open it again:  \"$ROOT/polymath-open\""
   say "Change port:    bash \"$APP/install.sh\" --port 9000"
   say "Remove it:      bash \"$APP/install.sh\" --uninstall"
-  if [ "$OPEN" = 1 ]; then "$ROOT/polymath-open" >/dev/null 2>&1 || true; fi
+  if [ "$OPEN" = 1 ]; then "$PY" "$APP/scripts/polymath_control.py" open >/dev/null 2>&1 || true; fi
 }
 
 # Everything runs from here, so a download cut off halfway does nothing.

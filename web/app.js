@@ -1697,6 +1697,7 @@
     unsafe: 'Claude Code started with tools it shouldn’t have, so the question was refused.',
     api_key: 'Claude Code would have billed an API key instead of your subscription, so it was stopped. Log in with your Claude subscription.',
     not_subscription: 'Claude Code isn’t logged in with a Claude subscription, so nothing was written.',
+    no_subscription: 'Your Claude account has no active subscription, so nothing was written.',
     writer_missing: 'Claude Code couldn’t be started.',
     stopped: 'The dashboard stopped while this was being written.',
   };
@@ -1976,7 +1977,7 @@
     if (study.sid && (['time_up', 'stale', 'closed', 'not_ready'].includes(err.code) || (err.code === 'nothing' && onSession()))) {
       openSession(study.sid);
     }
-    if (['daily_cap', 'not_owner', 'writer_missing', 'signed_out', 'api_key', 'not_subscription'].includes(err.code) || MODEL_DOWN.has(err.code)) loadStudyHome(true);
+    if (['daily_cap', 'not_owner', 'writer_missing', 'signed_out', 'api_key', 'not_subscription', 'no_subscription'].includes(err.code) || MODEL_DOWN.has(err.code)) loadStudyHome(true);
     if (MODEL_DOWN.has(err.code)) checkModel(true);
   }
   const sessionAct = (action, body, opts) => act(studyPath(study.sid, ...action.split('/')), body, opts);
@@ -3530,7 +3531,9 @@
 
   // --- AI model: what writes your questions ---------------------------------------------------------
   const models = {status: null, view: null, loading: false, loadError: null, absent: false, scan: null, scanning: false,
-    working: null, testing: false, errors: {}, lists: {}, listing: null, picked: {}, keys: {}, urls: {}, provider: null};
+    working: null, testing: false, errors: {}, lists: {}, listing: null, picked: {}, keys: {}, urls: {}, provider: null,
+    claude: null, claudeChecking: false};
+  const CLAUDE_SETUP = new Set(['signed_out', 'not_subscription', 'no_subscription', 'writer_missing', 'api_key', 'no_model']);
   const MODEL_DOWN = new Set(['model_offline', 'model_missing', 'model_memory', 'key_rejected', 'no_model']);
   const isModels = () => !!(app.route && app.route.name === 'models');
   async function checkModel(force) {
@@ -3560,8 +3563,28 @@
     }
     if (stuck.length) { renderSoon(); pollSession(); }
   }
-  const DOWN_TITLE = (s) => ({model_offline: `${s.label} isn’t responding`, model_missing: `${s.model || 'That model'} isn’t available`,
-    model_memory: 'Not enough free memory for this model', key_rejected: `${s.label} rejected your API key`, no_model: 'Choose an AI model'}[s.code]
+  async function checkClaude() {
+    if (models.claudeChecking) return;
+    models.claudeChecking = true;
+    if (isModels()) redraw();
+    const was = models.status;
+    try {
+      const out = await post('api/models/claude', {});
+      models.claude = out;
+      models.status = out.status;
+      if (models.view) models.view.status = out.status;
+      if (was && !was.ok && out.status.ok) {
+        toast('Claude is connected.');
+        await refresh();
+        loadStudyHome(true);
+        retryAfterModel();
+      }
+    } catch (err) { models.claude = {state: 'error', installed: false, signed_in: false, plan: ''}; }
+    finally { models.claudeChecking = false; renderSoon(); }
+  }
+  const DOWN_TITLE = (s) => ({no_subscription: 'Your Claude account has no active subscription', signed_out: 'Claude Code isn’t signed in', not_subscription: 'Claude Code isn’t using your subscription',
+    api_key: 'Claude Code isn’t using your subscription', writer_missing: 'Claude Code isn’t available', model_offline: `${s.label} isn’t responding`, model_missing: `${s.model || 'That model'} isn’t available`,
+    model_memory: 'Not enough free memory for this model', key_rejected: `${s.label} rejected your API key`, no_model: 'Choose an AI model to start studying'}[s.code]
     || 'Your AI model isn’t ready');
   function modelBanner(route) {
     const s = models.status;
@@ -3571,10 +3594,11 @@
       h('div', {class: 'small muted'}, 'Your progress and answers are safe. New questions can’t be written until this is fixed.'),
       h('div', {class: 'study-actions', style: {marginTop: '8px'}},
         h('button', {class: 'btn btn-small', type: 'button', onclick: async () => {
-          await checkModel(true);
-          if (models.status && !models.status.ok) toast('Still not responding.', true);
+          if (CLAUDE_SETUP.has(s.code)) await checkClaude(); else await checkModel(true);
+          if (models.status && !models.status.ok) toast('Still not ready.', true);
         }}, 'Check again'),
-        h('a', {class: 'btn btn-small btn-primary', href: '#/models'}, 'Change AI model'))));
+        CLAUDE_SETUP.has(s.code) ? h('a', {class: 'btn btn-small btn-primary', href: link('models', 'claude')}, 'See how to fix it')
+          : h('a', {class: 'btn btn-small btn-primary', href: '#/models'}, 'Change AI model'))));
   }
   async function loadModels(force) {
     if (models.loading || (models.view && !force)) return;
@@ -3653,7 +3677,7 @@
     redraw();
   }
   function placeText(s) {
-    if (s.kind === 'subscription') return 'Your questions and answers go to Anthropic through your Claude subscription.';
+    if (s.kind === 'subscription') return `Uses your Claude ${s.plan ? `${s.plan} plan` : 'subscription'} through Claude Code. Your questions and answers go to Anthropic.`;
     if (s.place === 'device') return 'Runs on this computer. What you study stays here.';
     if (s.place === 'network') return 'Runs on another computer on your network. What you study goes there.';
     return `Your questions, answers and any interview material go to ${s.label}, billed to your key.`;
@@ -3663,7 +3687,7 @@
     const ready = s.ok;
     return card({title: 'In use now', body: [
       h('div', {class: 'model-now'}, h('span', {class: `model-pill ${ready ? 'is-ok' : 'is-down'}`}, icon(ready ? 'check' : 'alert', ready ? 'is-good' : 'is-warning'), ready ? 'Ready' : 'Not ready'),
-        h('div', null, h('b', null, s.kind === 'none' ? 'No model chosen' : s.model ? `${s.model} · ${s.label}` : s.label),
+        h('div', null, h('b', null, s.kind === 'none' ? 'No AI model connected' : s.kind === 'subscription' && s.model ? `${capital(s.model)} · Claude${s.plan ? ` ${s.plan}` : ''}` : s.model ? `${s.model} · ${s.label}` : s.label),
           s.kind !== 'none' ? h('div', {class: 'small muted'}, placeText(s)) : null)),
       !ready ? h('div', {class: 'callout is-warning', style: {marginTop: '12px'}}, icon('alert', 'is-warning'), h('div', null, h('b', null, DOWN_TITLE(s)), h('div', {class: 'small'}, s.problem || ''))) : null,
       s.kind !== 'none' ? h('div', {class: 'study-actions', style: {marginTop: '12px'}},
@@ -3714,9 +3738,11 @@
       models.listing === 'local' ? 'Looking…' : 'Find its models')),
     names.length ? modelPicker('local', names, input.value) : null, modelError('local'), workingNote('local'));
   }
+  const bestWithClaude = () => h('div', {class: 'callout', style: {marginBottom: '12px'}}, icon('alert', 'is-warning'), h('div', {class: 'small'},
+    h('b', null, 'Polymath works best with Claude.'), ' Other models can write wrong answers more often, so check anything surprising against the official docs.'));
   function localTab(v) {
     const rows = (models.scan || []).filter((s) => s.provider !== 'local');
-    return [h('div', {class: 'study-actions', style: {marginBottom: '12px'}}, h('span', {class: 'small muted'}, 'Free and private: the model runs on your own computer.'),
+    return [bestWithClaude(), h('div', {class: 'study-actions', style: {marginBottom: '12px'}}, h('span', {class: 'small muted'}, 'Free and private: the model runs on your own computer.'),
       h('button', {class: 'btn btn-small', type: 'button', disabled: models.scanning, onclick: () => scanLocal(true)}, models.scanning ? 'Looking…' : 'Look again')),
     models.scan ? rows.map(localServerRow) : h('p', {class: 'loading'}, 'Looking for models on this computer…'), otherServerRow(v)];
   }
@@ -3736,7 +3762,7 @@
     const names = models.lists[spec.id] || [];
     const typed = h('input', {class: 'input', value: models.picked[spec.id] || '', placeholder: 'Or type a model name', 'aria-label': 'Model name',
       oninput: (e) => { models.picked[spec.id] = e.target.value.trim(); }});
-    return [h('p', {class: 'small muted', style: {marginBottom: '12px'}}, 'Your key stays on this computer and is sent only to the provider you choose. What you study goes to that provider, and they bill you.'),
+    return [bestWithClaude(), h('p', {class: 'small muted', style: {marginBottom: '12px'}}, 'Your key stays on this computer and is sent only to the provider you choose. What you study goes to that provider, and they bill you.'),
       h('div', {class: 'form-grid'}, h('label', {class: 'field'}, 'Provider', pick), h('label', {class: 'field'}, 'API key', keyInput),
         urlInput ? h('label', {class: 'field'}, 'API address', urlInput) : null),
       h('div', {class: 'study-actions', style: {marginTop: '12px'}},
@@ -3748,11 +3774,42 @@
           models.working === spec.id ? 'Testing it…' : 'Use this model')),
       modelError(spec.id), workingNote(spec.id)];
   }
+  const claudeStep = (state, title, note) => h('li', {class: 'claude-step'},
+    icon(state === 'done' ? 'check' : state === 'todo' ? 'alert' : 'dot', state === 'done' ? 'is-good' : state === 'todo' ? 'is-warning' : 'is-muted'),
+    h('div', null, h('b', null, title), note ? h('div', {class: 'small muted'}, note) : null));
+  function claudeNextStep(state) {
+    const login = ['Open a terminal, run ', h('code', null, 'claude'), ', type ', h('code', null, '/login'), ', and choose your Claude subscription. Then click Check again.'];
+    const step = {
+      not_installed: ['Install Claude Code', ['Follow the steps at ', h('a', {href: 'https://claude.com/claude-code', target: '_blank', rel: 'noopener noreferrer'}, 'claude.com/claude-code'), ', sign in, then click Check again.']],
+      signed_out: ['Sign in to Claude Code', login],
+      no_subscription: ['Choose a Claude plan', ['Claude Code needs an active subscription. Choose a plan at ', h('a', {href: 'https://claude.com/pricing', target: '_blank', rel: 'noopener noreferrer'}, 'claude.com/pricing'), ', then run ', h('code', null, 'claude'), ', type ', h('code', null, '/login'), ', and click Check again.']],
+      wrong_login: ['Switch to your Claude subscription', ['Claude Code is using an API key or another provider, which bills separately, so Polymath won’t use it. ', ...login]],
+      error: ['Polymath couldn’t get an answer from Claude Code', ['Open a terminal and check that ', h('code', null, 'claude'), ' starts, then click Check again.']],
+    }[state];
+    return step ? h('div', {class: 'callout is-warning', style: {marginTop: '12px'}}, icon('alert', 'is-warning'), h('div', null, h('b', null, step[0]), h('div', {class: 'small'}, step[1]))) : null;
+  }
   function claudeTab(v) {
     const spec = v.providers.find((p) => p.id === 'claude');
-    if (!spec.installed) return [h('p', {class: 'small muted'}, 'Claude Code isn’t installed on this computer. Install it and log in, then come back.')];
-    return [h('p', {class: 'small muted', style: {marginBottom: '12px'}}, 'Uses your Claude subscription through Claude Code. It’s the only option here that can also search the web for lessons and goal research.'),
-      modelPicker('claude', spec.models, ''), modelError('claude'), workingNote('claude')];
+    if (!models.claude && !models.claudeChecking) Promise.resolve().then(checkClaude);
+    const c = models.claude;
+    if (!c) return [h('p', {class: 'loading'}, 'Checking your Claude subscription…')];
+    const ready = c.state === 'ready';
+    const login = c.state === 'wrong_login' ? claudeStep('todo', 'Signed in, but not with a Claude subscription')
+      : c.state === 'no_subscription' ? claudeStep('done', 'Signed in to Claude')
+      : c.signed_in ? claudeStep('done', 'Signed in with your Claude subscription')
+        : claudeStep(c.installed ? 'todo' : 'wait', 'Signed in with your Claude subscription');
+    return [h('ul', {class: 'claude-steps'},
+      claudeStep(c.installed ? 'done' : 'todo', c.installed ? 'Claude Code is installed' : 'Claude Code isn’t installed'),
+      login,
+      ready ? claudeStep('done', c.plan ? `Claude ${c.plan} plan` : 'Claude plan found', 'Study counts toward your plan’s usage, the same as using Claude Code yourself.')
+        : c.state === 'no_subscription' ? claudeStep('todo', 'No active subscription') : claudeStep('wait', 'Your Claude plan')),
+    claudeNextStep(c.state),
+    h('div', {class: 'study-actions', style: {marginTop: '12px'}},
+      h('button', {class: 'btn btn-small', type: 'button', disabled: models.claudeChecking, onclick: checkClaude}, models.claudeChecking ? 'Checking…' : 'Check again')),
+    ready ? h('div', {class: 'model-row', style: {marginTop: '14px'}}, h('div', {class: 'model-row-head'}, h('b', null, 'Model')), modelPicker('claude', spec.models, '')) : null,
+    modelError('claude'), workingNote('claude'),
+    h('details', {class: 'small muted claude-how'}, h('summary', null, 'How Polymath knows this'),
+      h('p', null, 'It asks Claude Code on this computer by running ', h('code', null, 'claude auth status'), '. It uses only whether you’re signed in, the type of login and your plan name. It doesn’t save or show your email, and it never sees your password or payment details.'))];
   }
   // -- the benchmark: is this model safe to learn from? --
   const bench = {data: null, loading: false, error: null, runs: {}, poll: 0, target: '', budget: '', estimate: null, estimating: false,
