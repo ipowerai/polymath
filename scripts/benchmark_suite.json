@@ -1,0 +1,136 @@
+{
+  "version": 1,
+  "checked": "2026-11-23",
+  "note": "Section names and weights come from each exam's public outline. The concepts are Polymath's own topic list. No real exam questions are included or used.",
+  "exams": [
+    {
+      "id": "aws-saa",
+      "name": "AWS Certified Solutions Architect - Associate (SAA-C03)",
+      "format": "multiple choice and multiple response",
+      "source": "https://docs.aws.amazon.com/aws-certification/latest/solutions-architect-associate-03/solutions-architect-associate-03.html",
+      "official_sites": ["docs.aws.amazon.com", "aws.amazon.com"],
+      "domains": [
+        {"name": "Design Secure Architectures", "low": 0.30, "high": 0.30},
+        {"name": "Design Resilient Architectures", "low": 0.26, "high": 0.26},
+        {"name": "Design High-Performing Architectures", "low": 0.24, "high": 0.24},
+        {"name": "Design Cost-Optimized Architectures", "low": 0.20, "high": 0.20}
+      ],
+      "concepts": [
+        {"id": "aws.iam.policy-evaluation", "title": "IAM policy evaluation", "domain": "Design Secure Architectures", "objective": "Determine whether a request is allowed when identity policies, resource policies and explicit denies combine."},
+        {"id": "aws.vpc.nacl-vs-security-group", "title": "Network ACLs and security groups", "domain": "Design Secure Architectures", "objective": "Diagnose traffic blocked by stateless network ACL rules and stateful security group rules."},
+        {"id": "aws.s3.object-lock", "title": "S3 Object Lock retention modes", "domain": "Design Secure Architectures", "objective": "Choose a retention mode that meets a compliance requirement for immutable storage."},
+        {"id": "aws.rds.multi-az-vs-replicas", "title": "RDS Multi-AZ and read replicas", "domain": "Design Resilient Architectures", "objective": "Choose between Multi-AZ deployments and read replicas for availability or read scaling."},
+        {"id": "aws.sqs.decoupling", "title": "Decoupling with SQS", "domain": "Design Resilient Architectures", "objective": "Apply SQS standard or FIFO queues and visibility timeouts to decouple a workload."},
+        {"id": "aws.route53.failover", "title": "Route 53 routing and failover", "domain": "Design Resilient Architectures", "objective": "Select a Route 53 routing policy and health check for a failover requirement."},
+        {"id": "aws.ec2.auto-scaling", "title": "EC2 Auto Scaling policies", "domain": "Design High-Performing Architectures", "objective": "Choose a scaling policy that matches a predictable or variable load pattern."},
+        {"id": "aws.cloudfront.caching", "title": "CloudFront caching", "domain": "Design High-Performing Architectures", "objective": "Use CloudFront to reduce latency and origin load for static and dynamic content."},
+        {"id": "aws.s3.storage-classes", "title": "S3 storage classes and lifecycle rules", "domain": "Design Cost-Optimized Architectures", "objective": "Choose storage classes and lifecycle transitions for a known access pattern."},
+        {"id": "aws.ec2.purchase-options", "title": "EC2 purchase options", "domain": "Design Cost-Optimized Architectures", "objective": "Choose among On-Demand, Savings Plans, Reserved and Spot capacity for a workload."}
+      ]
+    },
+    {
+      "id": "security-plus",
+      "name": "CompTIA Security+ (SY0-701)",
+      "format": "multiple choice",
+      "source": "https://www.comptia.org/en-us/certifications/security/v7/",
+      "version_note": "V7 retires in English on June 11, 2027. V8 is already available.",
+      "official_sites": ["comptia.org", "nist.gov", "owasp.org"],
+      "domains": [
+        {"name": "General security concepts", "low": 0.12, "high": 0.12},
+        {"name": "Threats, vulnerabilities, and mitigations", "low": 0.22, "high": 0.22},
+        {"name": "Security architecture", "low": 0.18, "high": 0.18},
+        {"name": "Security operations", "low": 0.28, "high": 0.28},
+        {"name": "Security program management and oversight", "low": 0.20, "high": 0.20}
+      ],
+      "concepts": [
+        {"id": "security.crypto.forward-secrecy", "title": "Perfect forward secrecy", "domain": "General security concepts", "objective": "Select a key exchange that protects past sessions if a long-term key is later exposed."},
+        {"id": "security.threats.injection", "title": "Injection attacks", "domain": "Threats, vulnerabilities, and mitigations", "objective": "Identify an injection attack from evidence and choose the control that prevents it."},
+        {"id": "security.threats.social-engineering", "title": "Social engineering techniques", "domain": "Threats, vulnerabilities, and mitigations", "objective": "Distinguish phishing, pretexting and related techniques in a described incident."},
+        {"id": "security.architecture.segmentation", "title": "Network segmentation", "domain": "Security architecture", "objective": "Apply segmentation and zero trust ideas to limit lateral movement."},
+        {"id": "security.resilience.rpo-rto", "title": "RPO and RTO", "domain": "Security architecture", "objective": "Apply recovery point and recovery time objectives to a business scenario."},
+        {"id": "security.operations.incident-response", "title": "Incident response phases", "domain": "Security operations", "objective": "Choose the right next step for the current phase of an incident."},
+        {"id": "security.operations.mfa", "title": "Multifactor authentication", "domain": "Security operations", "objective": "Determine whether a login design uses truly different authentication factors."},
+        {"id": "security.operations.log-analysis", "title": "Log and alert analysis", "domain": "Security operations", "objective": "Use logs and alerts to separate a real event from a false positive."},
+        {"id": "security.program.risk-treatment", "title": "Risk treatment", "domain": "Security program management and oversight", "objective": "Choose accept, avoid, transfer or mitigate for a described risk."},
+        {"id": "security.program.data-roles", "title": "Data roles and responsibilities", "domain": "Security program management and oversight", "objective": "Assign data owner, controller, processor and custodian responsibilities."}
+      ]
+    },
+    {
+      "id": "az-900",
+      "name": "Microsoft Azure Fundamentals (AZ-900)",
+      "format": "multiple choice and multiple response",
+      "source": "https://learn.microsoft.com/en-us/credentials/certifications/resources/study-guides/az-900",
+      "version_note": "Skills measured as of July 20, 2026.",
+      "official_sites": ["learn.microsoft.com", "azure.microsoft.com"],
+      "domains": [
+        {"name": "Describe cloud concepts", "low": 0.25, "high": 0.30},
+        {"name": "Describe Azure architecture and services", "low": 0.35, "high": 0.40},
+        {"name": "Describe Azure management and governance", "low": 0.30, "high": 0.35}
+      ],
+      "concepts": [
+        {"id": "azure.cloud.shared-responsibility", "title": "Shared responsibility model", "domain": "Describe cloud concepts", "objective": "Determine who is responsible for a task under IaaS, PaaS and SaaS."},
+        {"id": "azure.cloud.service-types", "title": "IaaS, PaaS and SaaS", "domain": "Describe cloud concepts", "objective": "Match a business need to the right cloud service type."},
+        {"id": "azure.cloud.consumption-model", "title": "Consumption-based pricing", "domain": "Describe cloud concepts", "objective": "Explain how consumption pricing changes capital and operational expense."},
+        {"id": "azure.architecture.regions-zones", "title": "Regions and availability zones", "domain": "Describe Azure architecture and services", "objective": "Choose a deployment across zones or regions for a resilience need."},
+        {"id": "azure.storage.redundancy", "title": "Storage redundancy options", "domain": "Describe Azure architecture and services", "objective": "Select LRS, ZRS, GRS or GZRS for an availability and durability requirement."},
+        {"id": "azure.compute.options", "title": "Azure compute options", "domain": "Describe Azure architecture and services", "objective": "Choose among virtual machines, containers, App Service and Functions."},
+        {"id": "azure.identity.entra", "title": "Microsoft Entra ID and Conditional Access", "domain": "Describe Azure architecture and services", "objective": "Apply identity and Conditional Access features to an access requirement."},
+        {"id": "azure.governance.policy-vs-rbac", "title": "Azure Policy and RBAC", "domain": "Describe Azure management and governance", "objective": "Choose between controlling what resources may be and what people may do."},
+        {"id": "azure.governance.locks", "title": "Resource locks", "domain": "Describe Azure management and governance", "objective": "Apply CanNotDelete or ReadOnly locks and predict their effect."},
+        {"id": "azure.management.cost", "title": "Cost management tools", "domain": "Describe Azure management and governance", "objective": "Choose the right tool to estimate, track or limit Azure spending."}
+      ]
+    },
+    {
+      "id": "cka",
+      "name": "Certified Kubernetes Administrator (CKA)",
+      "format": "scenario-based",
+      "source": "https://www.cncf.io/training/certification/cka/",
+      "official_sites": ["kubernetes.io", "cncf.io", "training.linuxfoundation.org"],
+      "domains": [
+        {"name": "Cluster Architecture, Installation & Configuration", "low": 0.25, "high": 0.25},
+        {"name": "Workloads & Scheduling", "low": 0.15, "high": 0.15},
+        {"name": "Services & Networking", "low": 0.20, "high": 0.20},
+        {"name": "Storage", "low": 0.10, "high": 0.10},
+        {"name": "Troubleshooting", "low": 0.30, "high": 0.30}
+      ],
+      "concepts": [
+        {"id": "kubernetes.cluster.rbac", "title": "Kubernetes RBAC", "domain": "Cluster Architecture, Installation & Configuration", "objective": "Choose Roles, ClusterRoles and bindings that grant the required access."},
+        {"id": "kubernetes.cluster.kubeadm-upgrade", "title": "Upgrading with kubeadm", "domain": "Cluster Architecture, Installation & Configuration", "objective": "Put the steps of a kubeadm cluster upgrade in the right order."},
+        {"id": "kubernetes.cluster.etcd-backup", "title": "etcd backup and restore", "domain": "Cluster Architecture, Installation & Configuration", "objective": "Choose the correct approach to snapshot and restore etcd."},
+        {"id": "kubernetes.scheduling.taints-tolerations", "title": "Taints and tolerations", "domain": "Workloads & Scheduling", "objective": "Diagnose and fix a Pod that cannot be scheduled because of a taint."},
+        {"id": "kubernetes.network.network-policy", "title": "NetworkPolicy", "domain": "Services & Networking", "objective": "Choose a policy that isolates Pods as required."},
+        {"id": "kubernetes.network.services", "title": "Service types", "domain": "Services & Networking", "objective": "Select ClusterIP, NodePort or LoadBalancer for an access requirement."},
+        {"id": "kubernetes.storage.reclaim", "title": "PersistentVolume binding and reclaim", "domain": "Storage", "objective": "Predict PV and PVC state from access modes, storage classes and reclaim policy."},
+        {"id": "kubernetes.troubleshooting.pod-states", "title": "Diagnosing Pod states", "domain": "Troubleshooting", "objective": "Find the cause of a Pending, CrashLoopBackOff or ImagePullBackOff Pod."},
+        {"id": "kubernetes.troubleshooting.node-not-ready", "title": "Diagnosing a NotReady node", "domain": "Troubleshooting", "objective": "Choose the next diagnostic step for a node reporting NotReady."},
+        {"id": "kubernetes.troubleshooting.service-endpoints", "title": "Diagnosing a Service with no endpoints", "domain": "Troubleshooting", "objective": "Trace why a Service does not reach its Pods."}
+      ]
+    },
+    {
+      "id": "salesforce-pd1",
+      "name": "Salesforce Certified Platform Developer",
+      "format": "multiple choice and multiple select",
+      "source": "https://trailhead.salesforce.com/content/learn/modules/platform-developer-i-certification-prep-fundamentals-and-database-modeling/pd1-1-get-started",
+      "version_note": "Weights are from Salesforce's Trailhead certification prep module. The full exam guide page could not be read automatically.",
+      "official_sites": ["developer.salesforce.com", "help.salesforce.com", "trailhead.salesforce.com"],
+      "domains": [
+        {"name": "Developer Fundamentals", "low": 0.27, "high": 0.27},
+        {"name": "Process Automation and Logic", "low": 0.28, "high": 0.28},
+        {"name": "User Interface", "low": 0.25, "high": 0.25},
+        {"name": "Testing, Debugging, and Deployment", "low": 0.20, "high": 0.20}
+      ],
+      "concepts": [
+        {"id": "salesforce.platform.governor-limits", "title": "Governor limits and bulkification", "domain": "Developer Fundamentals", "objective": "Find the code pattern that exceeds a limit and choose the bulk-safe fix."},
+        {"id": "salesforce.data.relationships", "title": "Lookup and master-detail relationships", "domain": "Developer Fundamentals", "objective": "Choose a relationship type from its sharing, deletion and roll-up behavior."},
+        {"id": "salesforce.soql.relationship-queries", "title": "SOQL relationship queries", "domain": "Developer Fundamentals", "objective": "Write or read parent-to-child and child-to-parent SOQL correctly."},
+        {"id": "salesforce.apex.order-of-execution", "title": "Order of execution", "domain": "Process Automation and Logic", "objective": "Predict what runs, and what runs again, when a record is saved."},
+        {"id": "salesforce.apex.trigger-context", "title": "Trigger context", "domain": "Process Automation and Logic", "objective": "Choose before or after triggers and use their context variables correctly."},
+        {"id": "salesforce.apex.async", "title": "Asynchronous Apex", "domain": "Process Automation and Logic", "objective": "Choose among future methods, Queueable, Batch and Scheduled Apex."},
+        {"id": "salesforce.lwc.communication", "title": "LWC component communication", "domain": "User Interface", "objective": "Choose public properties, events or a message service between components."},
+        {"id": "salesforce.lwc.wire", "title": "Lightning data access with wire", "domain": "User Interface", "objective": "Use the wire service and cacheable Apex methods correctly."},
+        {"id": "salesforce.testing.test-data", "title": "Apex test data and isolation", "domain": "Testing, Debugging, and Deployment", "objective": "Apply test setup, isolation, startTest and stopTest correctly."},
+        {"id": "salesforce.deployment.tools", "title": "Deployment tools and sandboxes", "domain": "Testing, Debugging, and Deployment", "objective": "Choose a sandbox and deployment approach and meet the test coverage rule."}
+      ]
+    }
+  ]
+}

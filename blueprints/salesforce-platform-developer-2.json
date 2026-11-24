@@ -1,0 +1,105 @@
+{
+  "slug": "salesforce-pd2",
+  "title": "Salesforce Platform Developer II",
+  "short": "PD2",
+  "goal": "Pass the Salesforce Platform Developer II certification exam",
+  "kind": "certification",
+  "target_mastery": 0.85,
+  "exam": {
+    "name": "Salesforce Certified Platform Developer II",
+    "questions": 60,
+    "minutes": 120,
+    "passing_score": 0.7,
+    "format": "multiple choice and multiple select",
+    "verified": false,
+    "verify_note": "Section weights 15/27/20/20/18, 60 questions, 120 minutes and a 70% pass mark are from the Winter '24-era exam guide as best known; third-party sources disagree on the weights. Confirm against the official exam guide on Trailhead, then edit and re-import."
+  },
+  "sources": [
+    "https://trailhead.salesforce.com/credentials/platformdeveloperii",
+    "https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/",
+    "https://developer.salesforce.com/docs/platform/lwc/guide"
+  ],
+  "domains": [
+    {
+      "id": "advanced-developer-fundamentals",
+      "name": "Advanced Developer Fundamentals",
+      "weight": 0.15,
+      "concepts": [
+        {"id": "salesforce.apex.classes-interfaces", "title": "Apex classes, interfaces and access modifiers", "tags": ["salesforce", "apex", "oop"], "prereqs": [], "objective": "Write classes and interfaces; use static vs instance members, constructors, inheritance and access modifiers."},
+        {"id": "salesforce.apex.abstract-virtual-polymorphism", "title": "Abstract and virtual classes, and polymorphism", "tags": ["salesforce", "apex", "oop"], "prereqs": ["salesforce.apex.classes-interfaces"], "objective": "Use abstract and virtual classes, overrides and interfaces to vary behaviour without branching."},
+        {"id": "salesforce.apex.design-patterns", "title": "Apex design patterns: service, selector, domain, factory, singleton", "tags": ["salesforce", "apex", "design"], "prereqs": ["salesforce.apex.abstract-virtual-polymorphism"], "objective": "Recognise and apply common Apex patterns (service, selector, domain, unit of work, factory, singleton) and say when each helps."},
+        {"id": "salesforce.apex.dynamic-apex-describe", "title": "Dynamic Apex: Schema describe, dynamic SOQL and generic sObjects", "tags": ["salesforce", "apex", "metadata"], "prereqs": ["salesforce.apex.classes-interfaces"], "objective": "Use Schema describe calls, Database.query with bind variables and generic sObject access, including their limits and security risks."},
+        {"id": "salesforce.apex.custom-metadata-settings", "title": "Custom metadata types and custom settings", "tags": ["salesforce", "configuration"], "prereqs": [], "objective": "Store configuration in custom metadata or custom settings instead of hard-coding, and know which deploys with metadata."},
+        {"id": "salesforce.platform.localization-and-currency", "title": "Custom labels, translation and multi-currency in code", "tags": ["salesforce", "platform", "i18n"], "prereqs": [], "objective": "Write code and UI that respect custom labels, translations, user locale and multi-currency fields."},
+        {"id": "salesforce.apex.sharing-keywords", "title": "with sharing, without sharing, inherited sharing", "tags": ["salesforce", "apex", "security"], "prereqs": ["salesforce.apex.classes-interfaces"], "objective": "Pick the sharing keyword for a class and predict which records a query returns.", "docs": ["https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_classes_keywords_sharing.htm"]},
+        {"id": "salesforce.security.apex-managed-sharing", "title": "Apex managed sharing and share objects", "tags": ["salesforce", "security", "sharing"], "prereqs": ["salesforce.apex.sharing-keywords"], "objective": "Grant and revoke record access in code with share objects and Apex sharing reasons, and know when declarative sharing is better."}
+      ]
+    },
+    {
+      "id": "process-automation-logic-integration",
+      "name": "Process Automation, Logic, and Integration",
+      "weight": 0.27,
+      "concepts": [
+        {"id": "salesforce.apex.async-future", "title": "Future methods", "tags": ["salesforce", "apex", "async"], "prereqs": ["salesforce.apex.governor-limits-in-code"], "objective": "Use @future (including callout=true) and know its parameter and chaining restrictions."},
+        {"id": "salesforce.apex.async-queueable", "title": "Queueable Apex", "tags": ["salesforce", "apex", "async"], "prereqs": ["salesforce.apex.async-future"], "objective": "Use Queueable for non-primitive state and chaining, and monitor jobs with AsyncApexJob.", "docs": ["https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_queueing_jobs.htm"]},
+        {"id": "salesforce.apex.async-batch", "title": "Batch Apex", "tags": ["salesforce", "apex", "async"], "prereqs": ["salesforce.apex.async-queueable"], "objective": "Implement start/execute/finish, choose a scope size, and use Database.Stateful when state must carry over.", "docs": ["https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_batch_interface.htm"]},
+        {"id": "salesforce.apex.async-design-choices", "title": "Choosing and chaining asynchronous Apex", "tags": ["salesforce", "apex", "async"], "prereqs": ["salesforce.apex.async-queueable", "salesforce.apex.async-batch"], "objective": "Choose between future, Queueable, Batch, Schedulable and platform events for a requirement, and chain or monitor jobs within limits, including Queueable finalizers."},
+        {"id": "salesforce.apex.trigger-bulkification", "title": "Bulkified triggers and the handler pattern", "tags": ["salesforce", "apex", "triggers"], "prereqs": ["salesforce.apex.governor-limits-in-code"], "objective": "Write triggers that handle 200 records per batch, one trigger per object with logic in a handler class."},
+        {"id": "salesforce.apex.trigger-frameworks", "title": "Trigger frameworks: handlers, bypass switches and recursion control", "tags": ["salesforce", "apex", "triggers"], "prereqs": ["salesforce.apex.trigger-bulkification"], "objective": "Design a trigger framework with one trigger per object, handler classes, configurable bypass and recursion control."},
+        {"id": "salesforce.apex.transactions-recursion", "title": "Transactions, savepoints and recursion control", "tags": ["salesforce", "apex", "transactions"], "prereqs": [], "objective": "Reason about transaction boundaries, use Savepoint and rollback, and prevent trigger recursion with static state."},
+        {"id": "salesforce.apex.record-locking", "title": "Record locking and concurrency", "tags": ["salesforce", "apex", "transactions"], "prereqs": ["salesforce.apex.transactions-recursion"], "objective": "Use SELECT ... FOR UPDATE, avoid lock contention and handle UNABLE_TO_LOCK_ROW errors."},
+        {"id": "salesforce.platform.platform-events", "title": "Platform events", "tags": ["salesforce", "events", "integration"], "prereqs": [], "objective": "Publish and subscribe to platform events from Apex, triggers and Flow, and know publish-immediately vs after-commit."},
+        {"id": "salesforce.platform.change-data-capture", "title": "Change Data Capture", "tags": ["salesforce", "events", "integration"], "prereqs": ["salesforce.platform.platform-events"], "objective": "Subscribe to Change Data Capture events in Apex triggers and external clients, and choose it over custom platform events when it fits."},
+        {"id": "salesforce.integration.apex-callouts", "title": "HTTP callouts with Named and External Credentials", "tags": ["salesforce", "integration", "apex"], "prereqs": [], "objective": "Make REST and SOAP callouts from Apex using Named and External Credentials, within callout limits and transaction rules."},
+        {"id": "salesforce.integration.apex-web-services", "title": "Exposing Apex as REST and SOAP web services", "tags": ["salesforce", "integration", "apex"], "prereqs": ["salesforce.apex.classes-interfaces"], "objective": "Build @RestResource and webservice methods, handle requests and responses, and secure them."},
+        {"id": "salesforce.apex.invocable-methods", "title": "Calling Apex from Flow with invocable methods", "tags": ["salesforce", "apex", "flow"], "prereqs": ["salesforce.apex.classes-interfaces"], "objective": "Expose bulk-safe @InvocableMethod and @InvocableVariable to Flow."}
+      ]
+    },
+    {
+      "id": "user-interface",
+      "name": "User Interface",
+      "weight": 0.2,
+      "concepts": [
+        {"id": "salesforce.ui.lwc-fundamentals", "title": "Lightning Web Component structure and decorators", "tags": ["salesforce", "lwc", "ui"], "prereqs": [], "objective": "Build a component's HTML, JS and meta files, use @api, @track and @wire, and the lifecycle hooks.", "docs": ["https://developer.salesforce.com/docs/platform/lwc/guide"]},
+        {"id": "salesforce.ui.lwc-data-access", "title": "Getting data into LWC: LDS, wire adapters, Apex", "tags": ["salesforce", "lwc", "data"], "prereqs": ["salesforce.ui.lwc-fundamentals", "salesforce.apex.classes-interfaces"], "objective": "Choose Lightning Data Service, wire adapters or imperative Apex (@AuraEnabled cacheable) and handle errors."},
+        {"id": "salesforce.ui.lwc-data-refresh", "title": "Keeping LWC data fresh: refreshApex, record notifications and caching", "tags": ["salesforce", "lwc", "data"], "prereqs": ["salesforce.ui.lwc-data-access"], "objective": "Refresh wired data with refreshApex, notify Lightning Data Service of record changes, and reason about the client cache."},
+        {"id": "salesforce.ui.lwc-communication", "title": "Component communication and Lightning Message Service", "tags": ["salesforce", "lwc", "events"], "prereqs": ["salesforce.ui.lwc-fundamentals"], "objective": "Pass data down with public properties, up with custom events, and across the page with Lightning Message Service."},
+        {"id": "salesforce.ui.lwc-navigation-and-actions", "title": "Navigation, toasts and quick actions in LWC", "tags": ["salesforce", "lwc", "ui"], "prereqs": ["salesforce.ui.lwc-fundamentals"], "objective": "Use NavigationMixin, show toast events, and build screen and headless quick actions with LWC."},
+        {"id": "salesforce.ui.lwc-in-flow", "title": "Lightning Web Components in Flow", "tags": ["salesforce", "lwc", "flow"], "prereqs": ["salesforce.ui.lwc-fundamentals"], "objective": "Build LWCs for Flow screens (inputs, outputs, validation, navigation events) and launch flows from LWC."},
+        {"id": "salesforce.ui.visualforce-controllers", "title": "Visualforce pages and controllers", "tags": ["salesforce", "visualforce", "ui"], "prereqs": ["salesforce.apex.classes-interfaces"], "objective": "Use standard controllers, extensions and custom controllers, and know when Visualforce is the right tool."},
+        {"id": "salesforce.ui.visualforce-advanced", "title": "Advanced Visualforce: view state, pagination and JavaScript remoting", "tags": ["salesforce", "visualforce", "ui"], "prereqs": ["salesforce.ui.visualforce-controllers"], "objective": "Manage view state with transient variables, paginate with StandardSetController, and use JavaScript remoting."},
+        {"id": "salesforce.ui.ui-security", "title": "Preventing XSS and injection in UI code", "tags": ["salesforce", "security", "ui"], "prereqs": ["salesforce.ui.visualforce-controllers"], "objective": "Escape output in Visualforce, rely on Lightning Web Security and Locker, and avoid SOQL injection from UI input."}
+      ]
+    },
+    {
+      "id": "testing-debugging-deployment",
+      "name": "Testing, Debugging, and Deployment",
+      "weight": 0.2,
+      "concepts": [
+        {"id": "salesforce.testing.apex-test-fundamentals", "title": "Apex test classes, assertions and coverage", "tags": ["salesforce", "testing", "apex"], "prereqs": ["salesforce.apex.classes-interfaces"], "objective": "Write @isTest classes with meaningful assertions, know the 75% coverage rule and test data isolation (SeeAllData)."},
+        {"id": "salesforce.testing.test-data", "title": "Test data factories and @testSetup", "tags": ["salesforce", "testing"], "prereqs": ["salesforce.testing.apex-test-fundamentals"], "objective": "Create data with factory classes, @testSetup and Test.loadData."},
+        {"id": "salesforce.testing.async-and-limits", "title": "Test.startTest/stopTest and testing async code", "tags": ["salesforce", "testing", "async"], "prereqs": ["salesforce.testing.apex-test-fundamentals", "salesforce.apex.async-future"], "objective": "Use startTest/stopTest to reset limits and force async work to complete before assertions."},
+        {"id": "salesforce.testing.runas-and-mocks", "title": "System.runAs and callout mocks", "tags": ["salesforce", "testing", "security"], "prereqs": ["salesforce.testing.apex-test-fundamentals", "salesforce.apex.sharing-keywords"], "objective": "Test sharing and permissions with runAs, and callouts with HttpCalloutMock and Test.setMock."},
+        {"id": "salesforce.testing.stub-api-dependency-injection", "title": "Stub API, mocks and dependency injection", "tags": ["salesforce", "testing", "apex"], "prereqs": ["salesforce.testing.runas-and-mocks", "salesforce.apex.abstract-virtual-polymorphism"], "objective": "Isolate the unit under test with the Stub API (System.StubProvider), interfaces and dependency injection."},
+        {"id": "salesforce.testing.events-and-callouts", "title": "Testing callouts, platform events and async chains", "tags": ["salesforce", "testing", "integration"], "prereqs": ["salesforce.testing.async-and-limits", "salesforce.integration.apex-callouts", "salesforce.platform.platform-events"], "objective": "Test callouts with mocks, deliver platform events in tests, and test chained asynchronous work."},
+        {"id": "salesforce.testing.lwc-jest", "title": "Testing Lightning Web Components with Jest", "tags": ["salesforce", "testing", "lwc"], "prereqs": ["salesforce.ui.lwc-fundamentals"], "objective": "Know what Jest tests cover for LWC and how wire adapters and Apex are mocked."},
+        {"id": "salesforce.debugging.debug-logs", "title": "Debug logs, Developer Console and the Replay Debugger", "tags": ["salesforce", "debugging"], "prereqs": ["salesforce.apex.classes-interfaces"], "objective": "Set trace flags and log levels, read a debug log, and use checkpoints and the Apex Replay Debugger."},
+        {"id": "salesforce.deployment.tools", "title": "Deploying: change sets, Salesforce CLI and packages", "tags": ["salesforce", "deployment", "tools"], "prereqs": ["salesforce.testing.apex-test-fundamentals"], "objective": "Deploy with change sets, the Salesforce CLI and Metadata API, or unlocked packages, and know the test requirements for production."},
+        {"id": "salesforce.deployment.packaging-and-ci", "title": "Unlocked packages, scratch orgs and CI pipelines", "tags": ["salesforce", "deployment", "devops"], "prereqs": ["salesforce.deployment.tools"], "objective": "Structure work as unlocked or second-generation packages, use scratch orgs, and run tests in a CI pipeline."}
+      ]
+    },
+    {
+      "id": "performance",
+      "name": "Performance",
+      "weight": 0.18,
+      "concepts": [
+        {"id": "salesforce.apex.governor-limits-in-code", "title": "Writing code within governor limits", "tags": ["salesforce", "apex", "limits"], "prereqs": [], "objective": "Avoid SOQL and DML inside loops, read the Limits class, and know the key per-transaction limits.", "docs": ["https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_gov_limits.htm"]},
+        {"id": "salesforce.performance.soql-selectivity", "title": "Selective queries, indexes and the Query Plan tool", "tags": ["salesforce", "performance", "soql"], "prereqs": [], "objective": "Write selective SOQL that uses indexes, read the Query Plan tool, and know when custom indexes or skinny tables help."},
+        {"id": "salesforce.performance.large-data-volumes", "title": "Large data volumes, data skew and bulk processing", "tags": ["salesforce", "performance", "data"], "prereqs": ["salesforce.performance.soql-selectivity"], "objective": "Process large data volumes with Batch Apex and the Bulk API, and avoid ownership and lookup skew."},
+        {"id": "salesforce.performance.apex-cpu-and-heap", "title": "Apex CPU time, heap size and efficient code", "tags": ["salesforce", "performance", "apex"], "prereqs": ["salesforce.apex.governor-limits-in-code"], "objective": "Diagnose and reduce CPU time and heap use (collections, loops, string building, queries) with the Limits class and debug logs."},
+        {"id": "salesforce.performance.platform-cache", "title": "Platform Cache", "tags": ["salesforce", "performance", "cache"], "prereqs": [], "objective": "Use org and session cache partitions to cut repeated queries and callouts, handling cache misses safely."},
+        {"id": "salesforce.performance.lwc-performance", "title": "LWC performance: lazy loading, caching and rendering", "tags": ["salesforce", "performance", "lwc"], "prereqs": ["salesforce.ui.lwc-data-access"], "objective": "Speed up components with cacheable Apex, lazy loading, pagination and fewer re-renders."}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "polymath",
+  "description": "Polymath: a personal AI tutor plugin for Claude Code that teaches, quizzes, coaches and remembers your progress.",
+  "owner": {
+    "name": "iPowerAI"
+  },
+  "plugins": [
+    {
+      "name": "polymath",
+      "source": "./",
+      "description": "A personal AI tutor that remembers: adaptive lessons, quizzes, spaced review, mock exams and coaching for anything you want to learn."
+    }
+  ]
+}

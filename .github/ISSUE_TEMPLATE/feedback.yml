@@ -1,0 +1,42 @@
+name: Pilot feedback
+description: Tell us what worked, what didn't, and what confused you.
+title: "[Feedback] "
+labels: ["feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This page is public. Please leave out your resume, job details, private notes, API keys, sign-in links and real exam questions.
+  - type: dropdown
+    id: system
+    attributes:
+      label: Your computer
+      options: [Mac, Windows, Linux]
+    validations:
+      required: true
+  - type: input
+    id: goal
+    attributes:
+      label: What are you studying for?
+      placeholder: For example, Salesforce Platform Developer
+  - type: dropdown
+    id: install
+    attributes:
+      label: How did installing go?
+      options: [Worked the first time, Worked after some trouble, Did not work]
+    validations:
+      required: true
+  - type: textarea
+    id: worked
+    attributes:
+      label: What helped you learn?
+  - type: textarea
+    id: problems
+    attributes:
+      label: What went wrong or got in your way?
+      description: If it was a question with a wrong answer, tell us the topic and why you think it was wrong.
+  - type: dropdown
+    id: again
+    attributes:
+      label: Would you keep using it for your exam?
+      options: [Yes, Maybe, "No"]

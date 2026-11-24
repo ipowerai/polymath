@@ -1,0 +1,102 @@
+{
+  "slug": "claude-architect",
+  "title": "Claude Certified Architect - Foundations",
+  "short": "CCA-F",
+  "goal": "Pass the Claude Certified Architect - Foundations exam",
+  "kind": "certification",
+  "target_mastery": 0.85,
+  "exam": {
+    "name": "Claude Certified Architect - Foundations (CCA-F)",
+    "questions": 60,
+    "minutes": 120,
+    "passing_score": 0.72,
+    "format": "scenario-based multiple choice",
+    "verified": false,
+    "verify_note": "Domains, weights, format and the 720/1000 scaled pass mark come from third-party summaries of Anthropic's exam guide (v1.0, July 2026). A scaled score is not a plain percentage, so 0.72 is approximate. Confirm everything against Anthropic's official exam guide, then edit and re-import."
+  },
+  "sources": [
+    "https://www.anthropic.com/engineering/building-effective-agents",
+    "https://code.claude.com/docs",
+    "https://platform.claude.com/docs",
+    "https://modelcontextprotocol.io/",
+    "https://anthropic.skilljar.com/"
+  ],
+  "domains": [
+    {
+      "id": "agentic-architecture",
+      "name": "Agentic Architecture and Orchestration",
+      "weight": 0.27,
+      "concepts": [
+        {"id": "claude.agents.workflows-vs-agents", "title": "Workflows versus agents", "tags": ["claude", "agents"], "prereqs": [], "objective": "Decide when a fixed workflow, a single model call or an autonomous agent fits a problem, weighing cost, latency and control.", "docs": ["https://www.anthropic.com/engineering/building-effective-agents"]},
+        {"id": "claude.agents.workflow-patterns", "title": "Prompt chaining, routing and parallelization", "tags": ["claude", "agents"], "prereqs": ["claude.agents.workflows-vs-agents"], "objective": "Apply prompt chaining, routing and parallelization (sectioning and voting), and say what each trades off.", "docs": ["https://www.anthropic.com/engineering/building-effective-agents"]},
+        {"id": "claude.agents.agent-loop", "title": "The agent loop: tool calls, results and stop reasons", "tags": ["claude", "agents", "tools"], "prereqs": ["claude.tools.tool-definitions"], "objective": "Trace the loop in which the model requests a tool, the client runs it and returns the result, until the stop reason says the turn is done.", "docs": ["https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview"]},
+        {"id": "claude.agents.orchestrator-workers", "title": "Orchestrator-workers and subagent delegation", "tags": ["claude", "agents"], "prereqs": ["claude.agents.workflow-patterns", "claude.agents.agent-loop"], "objective": "Design an orchestrator that splits a task, delegates to worker agents with focused context, and merges their results.", "docs": ["https://www.anthropic.com/engineering/building-effective-agents"]},
+        {"id": "claude.agents.evaluator-optimizer", "title": "Evaluator-optimizer loops and self-checks", "tags": ["claude", "agents"], "prereqs": ["claude.agents.workflow-patterns"], "objective": "Use a generator and an evaluator in a loop, with clear criteria and a stopping rule.", "docs": ["https://www.anthropic.com/engineering/building-effective-agents"]},
+        {"id": "claude.agents.multi-agent-coordination", "title": "Coordinating multiple agents", "tags": ["claude", "agents"], "prereqs": ["claude.agents.orchestrator-workers"], "objective": "Coordinate several agents through shared state, handoffs and isolated contexts, and recognise failure modes such as duplicated work and lost context."},
+        {"id": "claude.agents.human-in-the-loop", "title": "Human checkpoints and permissions for agents", "tags": ["claude", "agents", "safety"], "prereqs": ["claude.agents.agent-loop"], "objective": "Place approvals, permission policies and checkpoints where an agent's actions are risky or irreversible."},
+        {"id": "claude.agents.agent-sdk", "title": "Building agents with the Claude Agent SDK", "tags": ["claude", "agents", "sdk"], "prereqs": ["claude.agents.agent-loop"], "objective": "Build an agent on the Claude Agent SDK with its built-in tools, custom tools, permissions and sessions."},
+        {"id": "claude.agents.choosing-a-surface", "title": "Choosing where an agent runs", "tags": ["claude", "agents", "architecture"], "prereqs": ["claude.agents.agent-sdk"], "objective": "Choose between a Messages API loop, the Agent SDK, Claude Code and hosted agents for a given deployment."}
+      ]
+    },
+    {
+      "id": "claude-code",
+      "name": "Claude Code Configuration and Workflows",
+      "weight": 0.2,
+      "concepts": [
+        {"id": "claude.code.memory-files", "title": "CLAUDE.md memory files and their hierarchy", "tags": ["claude", "claude-code"], "prereqs": [], "objective": "Write effective CLAUDE.md files and know how user, project and local memory combine.", "docs": ["https://code.claude.com/docs/en/memory"]},
+        {"id": "claude.code.settings-permissions", "title": "Settings scopes and permission rules", "tags": ["claude", "claude-code", "security"], "prereqs": ["claude.code.memory-files"], "objective": "Configure settings at user, project and local scope, and write allow, ask and deny permission rules.", "docs": ["https://code.claude.com/docs/en/settings"]},
+        {"id": "claude.code.hooks", "title": "Hooks: events, matchers and blocking", "tags": ["claude", "claude-code"], "prereqs": ["claude.code.settings-permissions"], "objective": "Use hooks on events such as PreToolUse, PostToolUse and SessionStart to enforce rules, block actions or add context.", "docs": ["https://code.claude.com/docs/en/hooks"]},
+        {"id": "claude.code.skills-commands", "title": "Skills and slash commands", "tags": ["claude", "claude-code"], "prereqs": ["claude.code.memory-files"], "objective": "Package a repeatable workflow as a skill or slash command, with arguments, allowed tools and supporting files.", "docs": ["https://code.claude.com/docs/en/skills"]},
+        {"id": "claude.code.subagents", "title": "Subagents in Claude Code", "tags": ["claude", "claude-code", "agents"], "prereqs": ["claude.code.skills-commands"], "objective": "Define subagents with their own instructions, tools and model, and delegate work to them to protect the main context.", "docs": ["https://code.claude.com/docs/en/sub-agents"]},
+        {"id": "claude.code.mcp-servers", "title": "Connecting MCP servers to Claude Code", "tags": ["claude", "claude-code", "mcp"], "prereqs": ["claude.code.settings-permissions", "claude.tools.mcp-architecture"], "objective": "Add MCP servers at the right scope, share them through .mcp.json, and control their tools with permissions.", "docs": ["https://code.claude.com/docs/en/mcp"]},
+        {"id": "claude.code.plugins", "title": "Plugins and marketplaces", "tags": ["claude", "claude-code"], "prereqs": ["claude.code.skills-commands", "claude.code.hooks"], "objective": "Bundle skills, agents, hooks and MCP servers into a plugin and distribute it through a marketplace.", "docs": ["https://code.claude.com/docs/en/plugins"]},
+        {"id": "claude.code.headless-automation", "title": "Headless mode and CI automation", "tags": ["claude", "claude-code", "automation"], "prereqs": ["claude.code.settings-permissions"], "objective": "Run Claude Code non-interactively (print mode, output formats, permission settings) in scripts and CI pipelines.", "docs": ["https://code.claude.com/docs/en/headless"]},
+        {"id": "claude.code.effective-workflows", "title": "Effective workflows: plan, context and verification", "tags": ["claude", "claude-code"], "prereqs": ["claude.code.memory-files"], "objective": "Use plan mode, focused context, tests and verification steps to get reliable results on real codebases."}
+      ]
+    },
+    {
+      "id": "prompt-engineering",
+      "name": "Prompt Engineering and Structured Output",
+      "weight": 0.2,
+      "concepts": [
+        {"id": "claude.prompting.clear-instructions", "title": "Clear, direct instructions with context", "tags": ["claude", "prompting"], "prereqs": [], "objective": "Write prompts that state the task, audience, constraints and success criteria explicitly.", "docs": ["https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/overview"]},
+        {"id": "claude.prompting.examples", "title": "Few-shot examples", "tags": ["claude", "prompting"], "prereqs": ["claude.prompting.clear-instructions"], "objective": "Choose and format examples that steer output without the model copying them too closely."},
+        {"id": "claude.prompting.xml-structure", "title": "Structuring prompts with XML tags", "tags": ["claude", "prompting"], "prereqs": ["claude.prompting.clear-instructions"], "objective": "Separate instructions, context and data with XML tags, and ask for output in tagged sections."},
+        {"id": "claude.prompting.system-prompts", "title": "System prompts and roles", "tags": ["claude", "prompting"], "prereqs": ["claude.prompting.clear-instructions"], "objective": "Decide what belongs in the system prompt and what in the user turn, and use roles effectively."},
+        {"id": "claude.prompting.thinking-effort", "title": "Extended thinking and effort", "tags": ["claude", "prompting", "reasoning"], "prereqs": ["claude.prompting.clear-instructions"], "objective": "Use extended or adaptive thinking and effort settings for hard problems, and know their cost and latency effects.", "docs": ["https://platform.claude.com/docs/en/build-with-claude/extended-thinking"]},
+        {"id": "claude.prompting.structured-outputs", "title": "Structured outputs and JSON schemas", "tags": ["claude", "prompting", "structured-output"], "prereqs": ["claude.prompting.xml-structure", "claude.tools.tool-definitions"], "objective": "Get reliably structured output with JSON schemas or tool definitions, and validate it.", "docs": ["https://platform.claude.com/docs/en/build-with-claude/structured-outputs"]},
+        {"id": "claude.prompting.long-documents", "title": "Prompting with long documents", "tags": ["claude", "prompting", "context"], "prereqs": ["claude.prompting.xml-structure"], "objective": "Place long documents before the question, have the model quote relevant passages first, and ground answers in the provided text."}
+      ]
+    },
+    {
+      "id": "tool-design-mcp",
+      "name": "Tool Design and MCP Integration",
+      "weight": 0.18,
+      "concepts": [
+        {"id": "claude.tools.tool-definitions", "title": "Defining tools: names, descriptions and input schemas", "tags": ["claude", "tools"], "prereqs": [], "objective": "Define tools with clear names, detailed descriptions and precise JSON input schemas.", "docs": ["https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview"]},
+        {"id": "claude.tools.tool-design", "title": "Designing tools the model uses well", "tags": ["claude", "tools"], "prereqs": ["claude.tools.tool-definitions"], "objective": "Design tools at the right granularity, with unambiguous parameters and error messages the model can act on."},
+        {"id": "claude.tools.tool-results-errors", "title": "Tool results, errors and parallel tool calls", "tags": ["claude", "tools"], "prereqs": ["claude.tools.tool-definitions"], "objective": "Return tool results and errors (is_error) correctly, and handle several tool calls in one turn."},
+        {"id": "claude.tools.tool-choice", "title": "Controlling tool use: tool_choice and strict schemas", "tags": ["claude", "tools"], "prereqs": ["claude.tools.tool-definitions"], "objective": "Steer whether and which tools are used and enforce schemas with strict mode, noting which models restrict forced tool choice."},
+        {"id": "claude.tools.server-tools", "title": "Server tools: web search, web fetch and code execution", "tags": ["claude", "tools"], "prereqs": ["claude.tools.tool-definitions"], "objective": "Use Anthropic-hosted tools and explain how their results differ from client tools."},
+        {"id": "claude.tools.mcp-architecture", "title": "MCP architecture: hosts, clients and servers", "tags": ["claude", "mcp"], "prereqs": ["claude.tools.tool-definitions"], "objective": "Explain how MCP hosts, clients and servers connect, and why MCP standardises tool integration.", "docs": ["https://modelcontextprotocol.io/"]},
+        {"id": "claude.tools.mcp-primitives", "title": "MCP primitives: tools, resources and prompts", "tags": ["claude", "mcp"], "prereqs": ["claude.tools.mcp-architecture"], "objective": "Choose between exposing a capability as an MCP tool, a resource or a prompt.", "docs": ["https://modelcontextprotocol.io/"]},
+        {"id": "claude.tools.mcp-transports-security", "title": "MCP transports, authentication and security", "tags": ["claude", "mcp", "security"], "prereqs": ["claude.tools.mcp-architecture"], "objective": "Choose stdio or streamable HTTP transport, secure remote servers with OAuth, and guard against prompt injection through tool results.", "docs": ["https://modelcontextprotocol.io/"]}
+      ]
+    },
+    {
+      "id": "context-reliability",
+      "name": "Context Management and Reliability",
+      "weight": 0.15,
+      "concepts": [
+        {"id": "claude.context.context-windows", "title": "Context windows and token budgets", "tags": ["claude", "context"], "prereqs": [], "objective": "Budget tokens across instructions, history, documents and output, and know what happens when the window fills.", "docs": ["https://platform.claude.com/docs/en/build-with-claude/context-windows"]},
+        {"id": "claude.context.prompt-caching", "title": "Prompt caching", "tags": ["claude", "context", "cost"], "prereqs": ["claude.context.context-windows"], "objective": "Structure prompts for cache hits (stable prefix first, breakpoints) and estimate the savings.", "docs": ["https://platform.claude.com/docs/en/build-with-claude/prompt-caching"]},
+        {"id": "claude.context.long-running-context", "title": "Managing context in long tasks: compaction, editing and memory", "tags": ["claude", "context", "agents"], "prereqs": ["claude.context.context-windows"], "objective": "Keep long agent runs within the window using compaction, context editing, subagents and memory files."},
+        {"id": "claude.context.retrieval", "title": "Retrieval and grounding", "tags": ["claude", "context", "rag"], "prereqs": ["claude.context.context-windows"], "objective": "Retrieve and inject relevant knowledge, cite sources, and ground answers to reduce hallucination."},
+        {"id": "claude.reliability.evals", "title": "Success criteria and evaluations", "tags": ["claude", "reliability"], "prereqs": ["claude.prompting.clear-instructions"], "objective": "Define measurable success criteria and build code-graded, model-graded and human evals to compare prompts and models."},
+        {"id": "claude.reliability.errors-retries", "title": "Errors, rate limits, retries and streaming", "tags": ["claude", "reliability", "api"], "prereqs": [], "objective": "Handle API errors, rate limits and overloads with retries and backoff, and stream long responses."},
+        {"id": "claude.reliability.guardrails", "title": "Guardrails against hallucination, jailbreaks and prompt injection", "tags": ["claude", "reliability", "safety"], "prereqs": ["claude.prompting.system-prompts"], "objective": "Reduce hallucinations, resist jailbreaks and prompt injection, and keep agents within policy."},
+        {"id": "claude.reliability.cost-latency", "title": "Choosing models and settings for cost and latency", "tags": ["claude", "reliability", "cost"], "prereqs": ["claude.prompting.thinking-effort", "claude.context.prompt-caching"], "objective": "Trade off model, effort, caching and batch processing against quality, cost and latency."}
+      ]
+    }
+  ]
+}
