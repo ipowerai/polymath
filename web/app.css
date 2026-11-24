@@ -771,3 +771,8 @@ section.card > .learn-row:first-child { margin-top: 0; }
 .claude-how { margin-top: 14px; }
 .claude-how summary { cursor: pointer; }
 .claude-how p { margin: 6px 0 0; }
+.setup-choices { display: grid; gap: 8px; }
+.setup-choice { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; min-width: 0; }
+.setup-choice > div { min-width: 0; overflow-wrap: anywhere; }
+.setup-choice input { margin-top: 3px; flex: none; }
+.setup-choice:has(input:checked) { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }

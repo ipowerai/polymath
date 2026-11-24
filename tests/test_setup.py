@@ -201,6 +201,59 @@ class Keys(Base):
         self.assertIn("needs the anthropic Python package", json.dumps(found))
 
 
+class FirstRun(unittest.TestCase):
+    """A new data folder is set up from the page, not from Claude Code."""
+
+    def setUp(self):
+        import polymath as engine
+        import polymath_web as web
+        self.engine, self.web = engine, web
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.store = engine.Store(Path(self.tmp.name) / "data")
+
+    def test_a_new_folder_offers_the_ready_made_exams(self):
+        state = self.web.collect_state(self.store)
+        self.assertFalse(state["ready"])
+        names = [b["name"] for b in state["blueprints"]]
+        self.assertIn("salesforce-platform-developer-1", names)
+        self.assertEqual(self.web.collect_state(self.store, snapshot=True)["blueprints"], [])
+
+    def test_setup_with_an_exam_makes_everything_available(self):
+        out = self.web.first_setup(self.store, {"name": "  Sam   Lee ", "level": "expert",
+                                                "blueprint": "salesforce-platform-developer-1", "target_date": "2099-01-15"})
+        self.assertEqual(out["track"], "salesforce-pd1")
+        learner = self.store.learner()
+        self.assertEqual((learner["name"], learner["preferences"]["start_level"]), ("Sam Lee", "expert"))
+        track = self.store.track("salesforce-pd1")
+        self.assertEqual(track["target_date"], "2099-01-15")
+        self.assertTrue((self.store.tracks_dir / "salesforce-pd1" / "syllabus.json").exists())
+        state = self.web.collect_state(self.store)
+        self.assertTrue(state["ready"])
+        self.assertEqual([t["slug"] for t in state["tracks"]], ["salesforce-pd1"])
+
+    def test_setup_without_an_exam_goes_on_to_goals(self):
+        out = self.web.first_setup(self.store, {"name": "", "level": "beginner", "blueprint": ""})
+        self.assertIsNone(out["track"])
+        self.assertTrue(self.store.ready())
+        self.assertEqual(self.store.learner()["name"], "Learner")
+        self.assertEqual(self.store.slugs(), [])
+
+    def test_bad_input_is_refused_before_anything_is_written(self):
+        for body in ({"level": "wizard"}, {"blueprint": "not-a-real-exam"}, {"blueprint": "salesforce-platform-developer-1",
+                     "target_date": "2001-01-01"}, {"target_date": "soon", "blueprint": "salesforce-platform-developer-1"},
+                     {"name": "a\x00b"}):
+            with self.assertRaises(self.engine.PolymathError):
+                self.web.first_setup(self.store, body)
+            self.assertFalse(self.store.ready(), body)
+
+    def test_it_runs_only_once(self):
+        self.web.first_setup(self.store, {"blueprint": ""})
+        with self.assertRaises(self.engine.PolymathError):
+            self.web.first_setup(self.store, {"blueprint": "salesforce-platform-developer-1"})
+        self.assertEqual(self.store.slugs(), [])
+
+
 class InstallerOrder(unittest.TestCase):
     def test_the_check_runs_before_anything_changes(self):
         text = (ROOT / "install.sh").read_text(encoding="utf-8")

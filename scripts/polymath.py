@@ -31,7 +31,7 @@ from contextlib import contextmanager
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
-VERSION = "0.1.1"
+VERSION = "0.1.2"
 SCHEMA = 1
 PLUGIN_ROOT = Path(__file__).resolve().parent.parent
 
@@ -1660,7 +1660,10 @@ Back it up: `cd ~/.polymath && git init && git add -A && git commit -m progress`
 """
 
 
-def cmd_init(args, store: Store):
+def init_learner(store: Store, name: str = None, persona_name: str = None, start_level: str = None) -> tuple:
+    """Create the learner profile, or update it. Returns (learner, created). Shared by `init` and the dashboard."""
+    if start_level is not None and start_level not in START_LEVELS:
+        raise PolymathError(f"start_level must be one of {', '.join(START_LEVELS)}.")
     private_dir(store.root, tighten=True)  # the learning record is yours alone, an older folder too
     with store.writing():  # the dashboard may be saving learner.json at this moment: take turns
         for d in (store.tracks_dir, store.journal_dir):
@@ -1669,12 +1672,12 @@ def cmd_init(args, store: Store):
         created = not learner
         learner.setdefault("schema", SCHEMA)
         learner.setdefault("created", iso(now()))
-        if args.name:
-            learner["name"] = args.name
+        if name:
+            learner["name"] = name
         learner.setdefault("name", "Learner")
         persona = learner.setdefault("persona", {})
-        if args.persona:
-            persona["name"] = args.persona
+        if persona_name:
+            persona["name"] = persona_name
         persona.setdefault("name", "Sage")
         persona.setdefault("tone", "warm, direct and concise")
         prefs = learner.setdefault("preferences", {})
@@ -1683,12 +1686,20 @@ def cmd_init(args, store: Store):
         prefs.setdefault("use_question_ui", True)
         prefs.setdefault("start_level", "intermediate")
         prefs.setdefault("block_size", 1)
+        if start_level:
+            prefs["start_level"] = start_level
         store.save_learner(learner)
         if not store.profile_md.exists():
             store.profile_md.write_text(LEARNER_MD.format(name=learner["name"]), encoding="utf-8")
         readme = store.root / "README.md"
         if not readme.exists():
             readme.write_text(HOME_README, encoding="utf-8")
+    return learner, created
+
+
+def cmd_init(args, store: Store):
+    learner, created = init_learner(store, args.name, args.persona)
+    persona = learner["persona"]
     data = {"home": str(store.root), "created": created, "learner": learner}
     verb = "Created" if created else "Updated"
     emit(args, data, f"{verb} profile for {learner['name']} (tutor: {persona['name']}) in {store.root}")

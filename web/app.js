@@ -1663,10 +1663,55 @@
           writable() ? noteForm('note-learner', 'api/notes', 'Add a note', headings.length ? field('note-learner', 'section', 'Under',
             h('select', {class: 'input'}, headings.map((x) => h('option', {value: x, selected: x === 'Coaching notes'}, x)))) : null) : null]})));
   }
+  // A new data folder: the profile and a first goal, set up here rather than in Claude Code.
+  const setupUI = {busy: false};
   function pageSetup() {
-    return h('div', {class: 'stack'}, pageHead('Polymath', 'Nothing to show yet'),
-      card({body: [empty('No learning data in this folder yet.', `Polymath reads ${app.state.app.home}.`),
-        h('p', {class: 'muted', style: {textAlign: 'center'}}, 'In Claude Code, run /polymath:learn and tell the tutor what you want to learn. This page fills in as you go.')]}));
+    const st = app.state;
+    if (app.snapshot || !writable()) {
+      return h('div', {class: 'stack'}, pageHead('Polymath', 'Nothing to show yet'),
+        card({body: empty('No learning data in this folder yet.', `Polymath reads ${st.app.home}.`)}));
+    }
+    const name = h('input', {class: 'input', maxlength: 60, autocomplete: 'given-name', placeholder: 'Your first name'});
+    const level = h('select', {class: 'input'}, [['beginner', 'New to it: explain as we go'], ['intermediate', 'Some experience'],
+      ['expert', 'Experienced: skip what I know']].map(([v, l]) => h('option', {value: v, selected: v === 'intermediate'}, l)));
+    const date = h('input', {class: 'input', type: 'date', min: (st.app.today || new Date().toISOString().slice(0, 10))});
+    const options = [...(st.blueprints || []).map((b) => [b.name, b.title, `${b.concepts} topics, ready to start now`]),
+      ['', 'Something else', 'Describe your goal, and Polymath researches what it takes and builds a plan']];
+    const choices = h('div', {class: 'setup-choices', role: 'radiogroup', 'aria-label': 'What do you want to learn?'},
+      options.map(([value, title, note], i) => h('label', {class: 'setup-choice'},
+        h('input', {type: 'radio', name: 'goal', value, checked: i === 0}),
+        h('div', null, h('b', null, title), h('div', {class: 'small muted'}, note)))));
+    const button = h('button', {class: 'btn btn-primary', type: 'submit', disabled: setupUI.busy}, setupUI.busy ? 'Setting up…' : 'Start');
+    const onsubmit = async (event) => {
+      event.preventDefault();
+      if (setupUI.busy) return;
+      const picked = event.currentTarget.querySelector('input[name=goal]:checked');
+      const blueprint = picked ? picked.value : '';
+      setupUI.busy = true;
+      button.disabled = true;
+      button.textContent = 'Setting up…';
+      try {
+        const out = await post('api/setup', {name: name.value.trim(), level: level.value, blueprint, target_date: blueprint ? date.value : ''});
+        delete app.drafts.setup;
+        await refresh();
+        location.hash = out.track ? link('track', out.track) : link('goals', 'new');
+        toast(out.track ? `${out.title} is ready. Open Study to start.` : 'Now tell Polymath what you want to learn.');
+      } catch (err) {
+        toast(err.message || String(err), true);
+      } finally {
+        setupUI.busy = false;
+        button.disabled = false;
+        button.textContent = 'Start';
+      }
+    };
+    return h('div', {class: 'stack'}, pageHead('Welcome to Polymath', 'Set up in under a minute. Your progress stays on this computer.'),
+      h('form', {class: 'stack', onsubmit},
+        card({title: 'About you', body: h('div', {class: 'form-grid'},
+          field('setup', 'name', 'What should your tutor call you?', name),
+          field('setup', 'level', 'How much do you already know?', level))}),
+        card({title: 'What do you want to learn?', sub: 'You can add more goals later.', body: [choices,
+          h('div', {class: 'form-grid', style: {marginTop: '14px'}}, field('setup', 'date', 'Exam date, if you’ve booked one', date))]}),
+        h('div', {class: 'form-actions'}, button)));
   }
 
   // --- study: question-first sessions in the browser ------------------------------------------

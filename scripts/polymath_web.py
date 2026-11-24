@@ -518,12 +518,53 @@ def attempts_page(model: engine.Model, raw: list, voided: set, offset=0, limit=5
             "items": [attempt_row(model, e, engine.attempt_key(e) in voided) for e in page]}
 
 
+SETUP_LEVELS = ("beginner", "intermediate", "expert")
+
+
+def blueprint_choices() -> list:
+    """The ready-made syllabi a new learner can start from."""
+    rows = []
+    for path in sorted((engine.PLUGIN_ROOT / "blueprints").glob("*.json")):
+        data = engine.read_json(path, {})
+        if not isinstance(data, dict) or not data.get("slug") or not data.get("domains"):
+            continue
+        rows.append({"name": path.stem, "title": data.get("title") or path.stem, "slug": data["slug"],
+                     "concepts": sum(len(d.get("concepts", [])) for d in data["domains"])})
+    return rows
+
+
+def first_setup(store: engine.Store, body: dict) -> dict:
+    """Set up a new data folder from the page: the learner profile, and a ready-made syllabus if one was chosen."""
+    if store.ready():
+        raise engine.PolymathError("Polymath is already set up here. Reload the page.")
+    name = " ".join(str(body.get("name") or "").split())[:60]
+    if any(ord(c) < 32 for c in name):
+        raise engine.PolymathError("That name has characters that can't be used.")
+    level = str(body.get("level") or "intermediate")
+    if level not in SETUP_LEVELS:
+        raise engine.PolymathError("Choose how much you already know.")
+    choice = str(body.get("blueprint") or "")
+    choices = {row["name"]: row for row in blueprint_choices()}
+    if choice and choice not in choices:
+        raise engine.PolymathError("Choose one of the listed exams, or Something else.")
+    target = str(body.get("target_date") or "").strip() or None
+    if target and engine.parse_date(target) < engine.local_day(engine.now()):
+        raise engine.PolymathError("That exam date has passed. Leave it empty if you haven't booked one.")
+    engine.init_learner(store, name=name or None, start_level=level)
+    if not choice:
+        return {"ok": True, "track": None}
+    data = engine.read_json(engine.PLUGIN_ROOT / "blueprints" / f"{choice}.json", {})
+    result = engine.import_track(store, data, target_date=target)
+    engine.write_json(store.tracks_dir / result["track"] / "syllabus.json", data)  # as `blueprints --to-track` keeps it
+    return {"ok": True, "track": result["track"], "title": choices[choice]["title"]}
+
+
 def collect_state(store: engine.Store, snapshot: bool = False, clock=None) -> dict:
     """Everything the page shows, in one JSON document."""
     app = {"version": engine.VERSION, "mode": "snapshot" if snapshot else "live",
            "generated_at": engine.iso(engine.now()), "data_version": data_version(store), "home": str(store.root)}
     if not store.ready():
-        return {"app": app, "ready": False}
+        return {"app": app, "ready": False, "blueprints": [] if snapshot else blueprint_choices()}
     model = engine.Model(store)
     app["today"] = engine.local_day(model.at).isoformat()
     tracks = {slug: model.tracks[slug] for slug in store.slugs() if slug in model.tracks}
@@ -1431,6 +1472,8 @@ class Handler(BaseHTTPRequestHandler):
             result = models_post(self.app, path, data)
         elif path.startswith("/api/bench/"):
             result = bench_post(self.app, path, data)
+        elif path == "/api/setup":
+            result = first_setup(self.app.store, data)
         elif path == "/api/learn":
             if not self.app.lessons:
                 raise NotFound(path)
